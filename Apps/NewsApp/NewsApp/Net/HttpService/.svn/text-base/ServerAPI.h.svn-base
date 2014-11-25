@@ -1,0 +1,321 @@
+//
+//  ServerAPI.h
+//  Bussiness
+//
+//  Created by liukai on 14-7-16.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import "Store.h"
+#import "Version.h"
+#import "ServiceTypeDefine.h"
+#import "FeedBack.h"
+#import "VoucherSelector.h"
+#import "Voucher.h"
+#import "OrderList.h"
+#import "Rank.h"
+#import "StoreProperty.h"
+#import "ImageInfo.h"
+#import "GoldDetail.h"
+#import "CreditDetail.h"
+#import "Clerk.h"
+#import "Member.h"
+#import "BusinessInfo.h"
+#import "BusinessClass.h"
+@protocol ILoginCallBack;
+@protocol IStoreBaseInforCallBack;
+@protocol IStoreCreditCallBack;
+@protocol IStoreGoldCallBack;
+@protocol ISettingCallBack;
+@protocol IVoucherCallBack;
+@protocol IStoreAppraiseCallBack;
+@protocol IOrderCallBack;
+@protocol IImageServerCallBack;
+@protocol IMemberApiCallBack;
+@protocol IBusinessApiCallBack;
+/**
+ * 用户登录接口相关接口
+ */
+@protocol ILoginApi <NSObject>
+/*
+ *商家端登陆接口
+ */
+-(void)bussinessLogin:(NSString*)name password:(NSString*)pwd storeID:(long)storeID callBack:(id<ILoginCallBack>)callback;
+
+/*
+ *用户端登陆接口
+ */
+-(void)clientLogin:(NSString*)name password:(NSString*)pwd callBack:(id<ILoginCallBack>)callback;
+
+/**
+ *获取当前登录用户的商家列表信息
+ */
+-(void)getStoreList:(id<ILoginCallBack>)callback;
+/**
+ *获取验证码接口 
+ *type 1.登陆，2.找回密码 3.注册
+ */
+
+-(void)getSecurityCode:(NSString*)phone type:(int)type callBack:(id<ILoginCallBack>)callback;
+/**
+ *找回密码
+ */
+-(void)updatePassWrod:(NSString*)phone securityCode:(NSString*)securityCode password:(NSString*)password callBack:(id<ILoginCallBack>)callback;
+@end
+
+@protocol ILoginCallBack <NSObject>
+@optional
+-(void)bussinessLogInCallBack:(long)retCode msg:(NSString *)msg userID:(NSString*)userId userIdentify:(UserIdentify)identify storeID:(long)storeID;
+-(void)clientLogInCallBack:(long)retCode msg:(NSString *)msg userID:(NSString*)userId;
+
+
+/*
+ *storelist 返回 Store对象，只包含ID 和NAME
+ */
+-(void)getStoreListCallBack:(long)retCode msg:(NSString *)msg storeList:(NSArray*)storeList;
+-(void)getSecurityCodeCallBack:(long)retCode msg:(NSString *)msg;
+
+-(void)updatePassWordCallBack:(long)retCode msg:(NSString *)msg;
+
+@end
+
+/**
+ *商户基本信息相关接口
+ */
+@protocol IStoreInfoApi <NSObject>
+/*
+ *加载商户基本信息
+ */
+-(void)loadStore:(NSString*)storeID callBack:(id<IStoreBaseInforCallBack>)callback;
+/*
+ *更新商家信息
+ */
+-(void)updateStore:(Store*)store callBack:(id<IStoreBaseInforCallBack>)callback;
+
+//上次商户LOGO
+-(void)uploadLogoImage:(UIImage*)image userID:(NSString*)userID storeID:(NSString*)storeID callBack:(id<IStoreBaseInforCallBack>)callback;
+
+//相册上传，支持多张上传 @imageData 为图片数据UIImage对象
+-(void)upLoadAlbum:(long)userID  storeID:(NSString*)storeID imageDatas:(NSArray*)imageDatas callBack:(id<IVoucherCallBack>)callback;
+//相册编辑，修改相册的图片ID等信息, 参数alumb为相册ID，多个ID逗号分开，比如ID1,ID2
+-(void)updateAlumb:(NSString*)alumbs callBack:(id<IVoucherCallBack>)callback;
+/*
+ *加载相册数据
+ */
+-(void)loadAlbum:(NSString*)storeID callBack:(id<IStoreBaseInforCallBack>)callback;
+
+//加载商户业务配置信息
+-(void)loadProperty:(NSString*)storeID callBack:(id<IStoreBaseInforCallBack>)callback;
+/*
+ *获取店员信息
+ */
+-(void)getClerkList:(id<IStoreBaseInforCallBack>)callback;
+/*
+ *添加员工信息
+ */
+-(void)addClerkWithRealName:(NSString*)realName
+                  accountID:(NSString*)accountID
+                       role:(NSInteger)role
+                   callBack:(id<IStoreBaseInforCallBack>)callback;
+/*
+ *删除员工
+ */
+-(void)delClerkWithId:(long)clerkId callBack:(id<IStoreBaseInforCallBack>)callback;
+
+/*
+ *更新员工信息
+ */
+-(void)updateClerk:(Clerk*)clerk callBack:(id<IStoreBaseInforCallBack>)callback;
+
+@end
+
+@protocol IStoreBaseInforCallBack <NSObject>
+@optional
+-(void)loadStorecCallBack:(long)retCode msg:(NSString*)msg store:(Store *)store ;
+-(void)updateStoreCallBack:(long)retCode msg:(NSString*)msg;
+//上传头像返回代理
+-(void)uploadLogoImageCallBack:(long)retCode msg:(NSString*)msg image:(ImageInfo*)image;
+//albums 包含Album信息
+-(void)loadAlbumCallBack:(long)retCode msg:(NSString*)msg albums:(NSArray*)albums;
+//
+-(void)loadPropertyCallBack:(long)retCode msg:(NSString*)msg  storeProperty:(StoreProperty*)property;
+//返回Clerk对象
+-(void)getClerkListCallBack:(long)retCode msg:(NSString*)msg clerklist:(NSArray*)clerkList;
+-(void)addClerkCallBack:(long)retCode msg:(NSString*)msg;
+-(void)delClerkCallBack:(long)retCode msg:(NSString*)msg;
+-(void)updateClerkCallBack:(long)retCode msg:(NSString*)msg;
+-(void)upLoadAlbumCallBack:(long)retCode msg:(NSString*)msg image:(ImageInfo*)image;
+-(void)updateAlumbCallBack:(long)retCode msg:(NSString*)msg;
+@end
+
+/**
+ *商户积分详情查询接口
+ */
+@protocol IStoreCreditApi <NSObject>
+-(void)list:(NSString*)storeID callBack:(id<IStoreCreditCallBack>)callback;
+@end
+
+@protocol IStoreCreditCallBack <NSObject>
+@optional
+// creditList :CreditDetail
+-(void)listCallBack:(long)retCode msg:(NSString*)msg creditList:(NSArray*)creditList;
+@end
+
+/**
+ *商户积分详情查询接口
+ */
+@protocol IStoreGoldApi <NSObject>
+-(void)list:(NSString*)storeID callBack:(id<IStoreGoldCallBack>)callback;
+@end
+
+@protocol IStoreGoldCallBack <NSObject>
+@optional
+//GoldDetail
+-(void)listCallBack:(long)retCode msg:(NSString*)msg goldList:(NSArray*)goldList;
+@end
+
+/**
+ *设置相关的接口
+ */
+@protocol ISettingApi <NSObject>
+//获取最新版本信息
+-(void)getVesion:(NSString*)curVersion callBack:(id<ISettingCallBack>)callback;
+//意见反馈
+-(void)feedBack:(FeedBack*)feedBack callBack:(id<ISettingCallBack>)callback;
+@end
+
+@protocol ISettingCallBack <NSObject>
+@optional
+-(void)getVersionCallBack:(long)retCode msg:(NSString*)msg version:(Version*)version;
+-(void)feedBackCallBack:(long)retCode msg:(NSString*)msg;
+@end
+
+/**
+ * 优惠券相关的接口
+ */
+@protocol IVoucherApi <NSObject>
+/**
+ *  制作优惠券时候获取用户标签
+ *
+ *  @param callback 代理
+ */
+- (void) getSelector:(id<IVoucherCallBack>)callback;
+
+/**
+ *  优惠券制作接口
+ *
+ *  @param voucher  优惠券模型（Voucher）
+ *  @param callback 代理
+ */
+- (void) make:(Voucher*)voucher calBack:(id<IVoucherCallBack>)callback;
+
+/**
+ *  优惠券查询会员特权消费返利接口
+ *
+ *  @param type     优惠券类型 1.一般优惠券 2.会员特权 3.消费返利
+ *  @param callback 代理
+ */
+- (void) getVoucherWitType:(NSString *)type calBack:(id<IVoucherCallBack>)callback;
+//优惠券删除会员特权和消费返利
+- (void)deleteVoucher:(long)voucherId calBack:(id<IVoucherCallBack>)callback;
+//制作特价优惠券
+- (void)makeSpecialVoucher:(Voucher*)voucher calBack:(id<IVoucherCallBack>)callback;
+//优惠券LOGO上传，@imageData 图片数据
+-(void)upLoadVoucherLogo:(long)userID imageData:(UIImage*)image callBack:(id<IVoucherCallBack>)callback;
+//优惠券图片上传，支持多张上传 @imageData 为图片数据UIImage对象
+-(void)upLoadVoucherAlbum:(long)userID imageDatas:(NSArray*)imageDatas callBack:(id<IVoucherCallBack>)callback;
+
+@end
+@protocol IVoucherCallBack <NSObject>
+@optional
+//taglist 返回VoucherSelector对象
+- (void)getSelectorCallBack:(long)retCode msg:(NSString*)msg selectorList:(NSArray*)selectorList;
+- (void)makeCallBack:(long)retCode msg:(NSString*)msg  voucherID:(long)id;
+- (void)getVoucherCallBack:(long)retCode msg:(NSString*)msg Voucher:(Voucher *)voucher;
+- (void)deleteVoucherCallBack:(long)retCode msg:(NSString*)msg;
+- (void)makeSpecialVoucherCallBack:(long)retCode msg:(NSString*)msg;
+-(void)upLoadVoucherLogoCallBack:(long)retCode msg:(NSString *)msg image:(ImageInfo*)image;
+-(void)upLoadVoucherAlbumCallBack:(long)retCode msg:(NSString *)msg image:(ImageInfo*)image;
+
+@end
+
+/**
+ * 商户评价操作接口
+ */
+@protocol IStoreAppraiseApi <NSObject>
+//获取商家的评价信息
+-(void)getAppriaseList:(NSString*)storeID lastId:(long)lastID  callBack:(id<IStoreAppraiseCallBack>)callback;
+-(void)getStoreRank:(NSString*)storeID callBack:(id<IStoreAppraiseCallBack>)callback;
+
+
+@end
+@protocol IStoreAppraiseCallBack <NSObject>
+@optional
+//商家的评级信息返回值，totalCount 总评价数，list当前返回的评价信息 StoreAppriase
+-(void)getAppriaseListCallBack:(long)retCode msg:(NSString*)msg totalCount:(long)count list:(NSArray*)list;
+-(void)getStoreRankCallBack:(long)retCode msg:(NSString*)msg rank:(Rank*)rank;
+@end
+
+/**
+ * 订单操作接口
+ */
+@protocol IOrderApi <NSObject>
+//获取商家收到的订单信息 支持分页查询
+-(void)orderList:(NSString*)storeID lastId:(long)lastID  callBack:(id<IOrderCallBack>)callback;
+//查询历史订单
+-(void)orderHistoryList:(NSString*)storeID lastId:(long)lastID  userIdentify:(UserIdentify)userIdentify callBack:(id<IOrderCallBack>)callback;
+//订单确认其中voucherids表示优惠券ID，用逗号隔开
+-(void)orderConfirmForUser:(long)userID orderID:(long)orderID voucherids:(NSString*)voucherids rebateCount:(NSInteger)rebateCount callBack:(id<IOrderCallBack>)callback;
+//删除订单
+-(void)orderRemove:(long)orderId callBack:(id<IOrderCallBack>)callback;
+@end
+@protocol IOrderCallBack <NSObject>
+@optional
+//商家的评级信息返回值，totalCount 总评价数，list当前返回的评价信息
+-(void)orderlistCallBack:(long)retCode msg:(NSString*)msg orders:(OrderList*)orders;
+-(void)orderHistoryListCallBack:(long)retCode msg:(NSString *)msg orders:(OrderList *)orders;
+-(void)orderConfirmCallBack:(long)retCode msg:(NSString *)msg;
+-(void)orderRemoveCallBack:(long)retCode msg:(NSString *)msg;
+@end
+
+/*
+ *会员基本操作接口
+ */
+@protocol IMemberApi <NSObject>
+/*
+ *加载会员基本信息，返回会员的详情信息
+ */
+-(void)loadMemberInfo:(id<IMemberApiCallBack>)callback;
+/*
+ *会员头像上传
+ */
+-(void)uploadMemberLogo:(long)userID image:(UIImage*)image callBack:(id<IMemberApiCallBack>)callback;
+@end
+@protocol IMemberApiCallBack <NSObject>
+@optional
+-(void)loadMemberInfoCallBack:(long)retCode msg:(NSString *)msg member:(Member*)member;
+-(void)uploadMemberLogoCallBack:(long)retCode msg:(NSString *)msg;
+@end
+
+/*
+ *商户信息操作接口
+ */
+@protocol IBusinessApi <NSObject>
+/*
+ *获取商圈基本信息
+ */
+-(void)businessList:(id<IBusinessApiCallBack>)callback;
+/*
+ *获取商户分类的子分类信息。
+ *@pararm parentID，父分类ID， 若为0则查询根分类数据
+ */
+-(void)businessTypeByParentID:(long)parentID callBack:(id<IBusinessApiCallBack>)callback;
+@end
+@protocol IBusinessApiCallBack <NSObject>
+@optional
+//返回BusinessInfo 对象数组
+-(void)businessListCallBack:(long)retCode msg:(NSString *)msg businesses:(NSArray*)list;
+//返回BusinessClass 对象数组
+-(void)businessTypeByParentIDCallBack:(long)retCode msg:(NSString *)msg classes:(NSArray*)list;
+@end

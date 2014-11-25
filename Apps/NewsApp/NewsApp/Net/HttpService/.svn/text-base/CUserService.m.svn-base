@@ -1,0 +1,285 @@
+//
+//  CUserService
+//  Bussiness
+//
+//  Created by liukai on 14-7-16.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import "CUserService.h"
+#import "HttpServiceMacro.h"
+#import "CHttpManager.h"
+#import "NSData+AES.h"
+#import "LogInfo.h"
+
+#define  MAX_REFRESH_COUNT 3
+@interface CUserService(){
+    NSString * _username;
+    NSString * _password;
+    long _storeID;
+    BOOL _refreshTokenStatus; //正在刷新TOKEN
+}
+@end
+
+@implementation CUserService
+
+SINGLETON_IMPLEMENT(CUserService)
+
+
+static NSString * PSW_Encrypt_Key = @"E238DAEDE32442CF8746C3B141CBD07A";
+
+#pragma mark ILoginApi
+
+
+-(void)clientLogin:(NSString*)name password:(NSString*)pwd callBack:(id<ILoginCallBack>)callback{
+    /**
+     密码进行加密登陆
+     */
+    _username = [name copy];
+    _password = [pwd copy];
+    NSString *encryptPsw = pwd;
+    if (pwd && ![@"" isEqualToString:pwd]) {
+        NSData *pswdata =  [pwd dataUsingEncoding:NSUTF8StringEncoding];
+        NSData *key =  [NSData stringToByte:PSW_Encrypt_Key];
+        pswdata = [pswdata AES128EncryptWithKey:key];
+        encryptPsw = [NSData byteToString:pswdata];
+    }
+    NSString *paramer = nil;
+    //ios 渠道ID，和渠道类型写死
+    paramer = [NSString stringWithFormat:@"username=%@&password=%@&channelId=0&channelType=0",name, encryptPsw];
+    
+    //发送通知，正在登录
+    [self broadcastNotification:NOTIFICATION_BASESERVICE_GOTO_LOGIN];
+    [self doRequest:USER_LOGIN paramer:paramer httpMethod:POST constroller:callback];
+}
+/**
+ * 商家登录接口
+ */
+-(void)bussinessLogin:(NSString*)name password:(NSString*)pwd storeID:(long)storeID callBack:(id<ILoginCallBack>)callback{
+    /**
+     密码进行加密登陆
+     */
+    _username = [name copy];
+    _password = [pwd copy];
+    _storeID = storeID;
+    NSString *encryptPsw = pwd;
+    if (pwd && ![@"" isEqualToString:pwd]) {
+        NSData *pswdata =  [pwd dataUsingEncoding:NSUTF8StringEncoding];
+        NSData *key =  [NSData stringToByte:PSW_Encrypt_Key];
+        pswdata = [pswdata AES128EncryptWithKey:key];
+        encryptPsw = [NSData byteToString:pswdata];
+    }
+    NSString *paramer = nil;
+    if(storeID>0){
+        //ios 渠道ID，和渠道类型写死
+        paramer = [NSString stringWithFormat:@"username=%@&password=%@&storeId=%ld&channelId=0&channelType=0",name, encryptPsw, storeID];
+    }else{
+        //ios 渠道ID，和渠道类型写死
+        paramer = [NSString stringWithFormat:@"username=%@&password=%@&channelId=0&channelType=0",name, encryptPsw];
+
+    }
+    //发送通知，正在登录
+    [self broadcastNotification:NOTIFICATION_BASESERVICE_GOTO_LOGIN];
+    [self doRequest:STORE_LOGIN paramer:paramer httpMethod:POST constroller:callback];
+}
+-(void)getStoreList:(id<ILoginCallBack>)callback{
+    [self doRequest:STORE_LIST paramer:nil httpMethod:GET constroller:callback];
+}
+-(void)getSecurityCode:(NSString*)phone type:(int)type callBack:(id<ILoginCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"phone=%@&type=%d",phone, type];
+    [self doRequest:COMMON_SMS paramer:paramer httpMethod:POST constroller:callback];
+
+}
+-(void)updatePassWrod:(NSString*)phone securityCode:(NSString*)securityCode password:(NSString*)password callBack:(id<ILoginCallBack>)callback{
+    NSString *encryptPsw = password;
+    if (password && ![@"" isEqualToString:password]) {
+        NSData *pswdata =  [password dataUsingEncoding:NSUTF8StringEncoding];
+        NSData *key =  [NSData stringToByte:PSW_Encrypt_Key];
+        pswdata = [pswdata AES128EncryptWithKey:key];
+        encryptPsw = [NSData byteToString:pswdata];
+    }
+    NSString *paramer = [NSString stringWithFormat:@"phone=%@&securitycode=%@&password=%@",phone, securityCode, encryptPsw];
+    [self doRequest:UPDATE_PASSWORD paramer:paramer httpMethod:POST constroller:callback];
+
+}
+
+-(void)uploadMemberLogo:(long)userID image:(UIImage*)image callBack:(id<IMemberApiCallBack>)callback{
+    NSDictionary *paramer = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithLong:userID], @"userid",
+                             nil];
+    [self upLoadImage:MEMBER_UPLOAD_LOGO paramer:paramer image:image constroller:callback];
+
+}
+
+#pragma mark http handle
+
+-(void)httpHead:(NSDictionary*)head connection:(id<IHttpConnection>)conn{
+    //登录成功设置TOKEN
+    NSString *token = [head objectForKey:@"TOKEN"];
+    [CHttpServiceBase setToken:token];
+}
+
+-(void)doServiceResponse:(NSData *)responseData interface:(NSString *)interface sequence:(ConnectionSequence)sequence{
+    [super doServiceResponse:responseData interface:interface sequence:sequence];
+    if (IS_INTERFACE(STORE_LOGIN)) {
+        [self doBusinessLogoResponse:responseData identify:sequence];
+    }else if (IS_INTERFACE(COMMON_SMS)){
+        [self doGetSMSResponse:responseData identify:sequence];
+    }else if (IS_INTERFACE(UPDATE_PASSWORD)){
+        [self doUpdatePassWordResponse:responseData identify:sequence];
+    }else if (IS_INTERFACE(STORE_LIST)){
+        [self doGetStoreListResponse:responseData identify:sequence];
+    }else if (IS_INTERFACE(USER_LOGIN)){
+        [self doUserLoginResponse:responseData identify:sequence];
+    }else if (IS_INTERFACE(MEMBER_LOAD)){
+        [self doMemberLoadResponse:responseData identify:sequence];
+    }else if (IS_INTERFACE(MEMBER_UPLOAD_LOGO)){
+        [self doMemberUploadLogoResponse:responseData identify:sequence];
+    }
+    
+}
+#pragma mark IMemberApi
+
+-(void)doMemberUploadLogoResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    id<IMemberApiCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(uploadMemberLogoCallBack:msg:)]) {
+        [callBack uploadMemberLogoCallBack:retCode msg:msg];
+    }
+}
+
+
+#pragma mark ILoginApiCallBack
+-(void)doBusinessLogoResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    NSDictionary *data = [jsonDic objectForKey:@"data"];
+    long storeID = 0;
+    NSString *userID = nil;
+    UserIdentify useridentify = UserIdentifyAssistant;
+    if (nil != data) {
+        storeID = [[data objectForKey:@"storeid"] longValue];
+        userID = [data objectForKey:@"userid"];
+        useridentify = [data objectForKey:@"role"] != nil?[[data objectForKey:@"role"] integerValue]:2;
+    }
+    if (_refreshTokenStatus) { //刷新TOKEN模式
+        _refreshTokenStatus = NO;
+    }else{
+        id<ILoginCallBack> callBack = [self findController:identify];
+        if (callBack && [callBack respondsToSelector:@selector(bussinessLogInCallBack:msg:userID:userIdentify:storeID:)]) {
+            [callBack bussinessLogInCallBack:retCode msg:msg userID:userID userIdentify:useridentify storeID:storeID];
+        }
+    }
+    //广播消息
+    if (SUCCESS_CODE == retCode) {
+        [self broadcastNotification:NOTIFICATION_BASESERVICE_SUCCESSE_REFRESH_TOKEN];
+    }
+    DDLogInfo(@"刷新TOKEN完成.....");
+    [self broadcastNotification:NOTIFICATION_BASESERVICE_FINISHED_REFRESH_TOKEN];
+}
+
+-(void)doUserLoginResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    NSDictionary *data = [jsonDic objectForKey:@"data"];
+    NSString *userID = nil;
+    if (nil != data) {
+        userID = [data objectForKey:@"userid"];
+    }
+    if (_refreshTokenStatus) { //刷新TOKEN模式
+        _refreshTokenStatus = NO;
+    }else{
+        id<ILoginCallBack> callBack = [self findController:identify];
+        if (callBack && [callBack respondsToSelector:@selector(clientLogInCallBack:msg:userID:)]) {
+            [callBack clientLogInCallBack:retCode msg:msg userID:userID];
+        }
+    }
+    //广播消息
+    if (SUCCESS_CODE == retCode) {
+        [self broadcastNotification:NOTIFICATION_BASESERVICE_SUCCESSE_REFRESH_TOKEN];
+    }
+    DDLogInfo(@"刷新TOKEN完成.....");
+    [self broadcastNotification:NOTIFICATION_BASESERVICE_FINISHED_REFRESH_TOKEN];
+}
+
+-(void)doGetSMSResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    id<ILoginCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(getSecurityCodeCallBack:msg:)]) {
+        [callBack getSecurityCodeCallBack:retCode msg:msg];
+    }
+  
+}
+-(void)doUpdatePassWordResponse:(NSData *) responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    id<ILoginCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(updatePassWordCallBack:msg:)]) {
+        [callBack updatePassWordCallBack:retCode msg:msg];
+    }
+  
+}
+-(void)doGetStoreListResponse:(NSData *) responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    NSMutableArray * storeList = [[NSMutableArray alloc] init];
+    NSArray * data = [jsonDic objectForKey:@"data"];
+    for (NSDictionary *dic in data) {
+        Store * store = [[Store alloc] init];
+        store.name = [dic objectForKey:@"name"];
+        store.id = [[dic objectForKey:@"id"] longValue];
+        [storeList addObject:store];
+        [store release];
+    }
+    id<ILoginCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(getStoreListCallBack:msg:storeList:)]) {
+        [callBack getStoreListCallBack:retCode msg:msg storeList:storeList];
+    }
+    [storeList release];
+}
+
+
+-(void)RefreshToken{
+    DDLogInfo(@"尝试刷新TOKEN.....");
+    _refreshTokenStatus = YES;
+    [self bussinessLogin:_username password:_password storeID:_storeID callBack:nil];
+}
+//负责TOKEN刷新
+-(void)doAfterTokenInvilide{
+    [super doAfterTokenInvilide];
+    [self RefreshToken];
+}
+#pragma mark IMemberApi
+-(void)loadMemberInfo:(id<IMemberApiCallBack>)callback{
+    [self doRequest:MEMBER_LOAD paramer:nil httpMethod:POST constroller:callback];
+
+}
+
+#pragma mark IMemberApi Callbakc
+-(void)doMemberLoadResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    Member *member = nil;
+    NSDictionary *data  = [jsonDic objectForKey:@"data"];
+    if (data) {
+        member = [[Member alloc] init];
+        member.userID = [data objectForKey:@"userId"];
+        member.name = [data objectForKey:@"name"];
+        member.age = [data objectForKey:@"age"]?[[data objectForKey:@"age"] integerValue]:0;
+        member.sex = [data objectForKey:@"sex"]?[[data objectForKey:@"sex"] integerValue]:3;
+        member.updateTime = [data objectForKey:@"updateTime"];
+        member.createTime = [data objectForKey:@"createTime"];
+        NSDictionary *dicAdress = [data objectForKey:@"address"];
+        if (dicAdress) {
+            member.adress = [[Adress alloc] init];
+            [member.adress release];
+            member.adress.area = [dicAdress objectForKey:@"area"];
+            member.adress.street = [dicAdress objectForKey:@"street"];
+            member.adress.province = [dicAdress objectForKey:@"province"];
+            member.adress.city = [dicAdress objectForKey:@"city"];
+        }
+    }
+    id<IMemberApiCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(loadMemberInfoCallBack:msg:member:)]) {
+        [callBack loadMemberInfoCallBack:retCode msg:msg member:member];
+    }
+    [member release];
+
+}
+
+
+@end

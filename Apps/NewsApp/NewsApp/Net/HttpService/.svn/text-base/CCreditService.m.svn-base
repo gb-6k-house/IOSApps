@@ -1,0 +1,48 @@
+//
+//  CCreditService.m
+//  Bussiness
+//
+//  Created by liukai on 14-7-24.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import "CCreditService.h"
+#import "CreditDetail.h"
+
+@implementation CCreditService
+
+SINGLETON_IMPLEMENT(CCreditService)
+-(void)list:(NSString*)storeID callBack:(id<IStoreCreditCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"id=%@",storeID];
+    [self doRequest:CREDITE_STORE_LIST paramer:paramer httpMethod:POST constroller:callback];
+}
+-(void)doServiceResponse:(NSData*)responseData  interface:(NSString*)interface  sequence:(ConnectionSequence)sequence{
+    [super doServiceResponse:responseData interface:interface sequence:sequence];
+    if (IS_INTERFACE(CREDITE_STORE_LIST)) {
+        [self doListResponse:responseData identify:sequence];
+    }
+    
+}
+
+-(void)doListResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    NSArray *list = [jsonDic objectForKey:@"data"];
+    NSMutableArray *creditArray = [[NSMutableArray alloc] init];
+    for(NSDictionary *dicCredit in list){
+        CreditDetail *detail = [[CreditDetail alloc] init];
+        detail.amount = [dicCredit objectForKey:@"amount"]!=nil? [[dicCredit objectForKey:@"amount"] longValue]:0;
+        detail.name = [dicCredit objectForKey:@"name"];
+        detail.createdTime = [dicCredit objectForKey:@"date"];
+        detail.type = [dicCredit objectForKey:@"transtype"]!=nil? getTransType([dicCredit objectForKey:@"transtype"]):TransTypeINTO;
+        detail.channel = [dicCredit objectForKey:@"channel"]!=nil? getTransChanel([dicCredit objectForKey:@"channel"]):TransChanelUnkown;
+        [creditArray addObject:detail];
+        [detail release];
+    }
+    id<IStoreCreditCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(listCallBack:msg:creditList:)]) {
+        //NSDictionary *data = [jsonDic objectForKey:@"data"];
+        [callBack listCallBack:retCode msg:msg creditList:creditArray];
+    }
+    [creditArray release];
+}
+@end

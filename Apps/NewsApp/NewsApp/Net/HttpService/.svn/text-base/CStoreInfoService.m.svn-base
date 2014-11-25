@@ -1,0 +1,358 @@
+//
+//  CStoreInfoService.m
+//  Bussiness
+//
+//  Created by liukai on 14-7-19.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import "CStoreInfoService.h"
+#import "HttpServiceMacro.h"
+@implementation CStoreInfoService
+
+SINGLETON_IMPLEMENT(CStoreInfoService)
+
+-(void)loadStore:(NSString*)storeID callBack:(id<IStoreBaseInforCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"storeid=%@",storeID];
+    [self doRequest:STORE_LOAD paramer:paramer httpMethod:GET constroller:callback];
+}
+
+-(void)updateStore:(Store*)store callBack:(id<IStoreBaseInforCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"id=%ld&address=%@&telphone1=%@&telphone2=%@",
+                         store.id, store.address, store.telphone1, store.telphone2];
+    [self doRequest:STORE_UPDATE paramer:paramer httpMethod:POST constroller:callback];
+
+}
+
+
+-(void)uploadLogoImage:(UIImage*)image userID:(NSString*)userID storeID:(NSString*)storeID callBack:(id<IStoreBaseInforCallBack>)callback{
+    NSDictionary *paramer = [NSDictionary dictionaryWithObjectsAndKeys:userID, @"userid",
+                             storeID, @"storeId",
+                             nil];
+    [self upLoadImage:UPLOAD_STORE_LOGO paramer:paramer image:image constroller:callback];
+}
+
+//相册上传，支持多张上传 @imageData 为图片数据UIImage对象
+-(void)upLoadAlbum:(long)userID  storeID:(NSString*)storeID imageDatas:(NSArray*)imageDatas callBack:(id<IVoucherCallBack>)callback{
+    for (UIImage *image in imageDatas) {
+        NSDictionary *paramer = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithLong:userID], @"userid",
+                                 storeID, @"storeId",
+                                 nil];
+        [self upLoadImage:UPLOAD_STORE_IMAGE paramer:paramer image:image constroller:callback];
+    }
+}
+//相册编辑，修改相册的图片ID等信息, 参数alumb为相册ID，多个ID逗号分开，比如ID1,ID2
+-(void)updateAlumb:(NSString*)alumbs callBack:(id<IVoucherCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"album=%@",alumbs];
+    [self doRequest:STORE_ALBUM_UPDATE paramer:paramer httpMethod:POST constroller:callback];
+}
+
+
+-(void)loadAlbum:(NSString*)storeID callBack:(id<IStoreBaseInforCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"storeid=%@&lastid=-1",storeID];
+    [self doRequest:STORE_ALBUM paramer:paramer httpMethod:POST constroller:callback];
+}
+-(void)getAppriaseList:(NSString*)storeID lastId:(long)lastID  callBack:(id<IStoreAppraiseCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"storeid=%@&lastid=%ld",storeID, lastID];
+    [self doRequest:STORE_APPRIASE_LIST paramer:paramer httpMethod:GET constroller:callback];
+}
+-(void)getStoreRank:(NSString*)storeID callBack:(id<IStoreAppraiseCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"storeId=%@",storeID];
+    [self doRequest:STORE_RANK paramer:paramer httpMethod:POST constroller:callback];
+
+}
+-(void)getClerkList:(id<IStoreBaseInforCallBack>)callback{
+    [self doRequest:STORE_CLERK_LIST paramer:nil httpMethod:GET constroller:callback];
+
+}
+-(void)addClerkWithRealName:(NSString*)realName
+                  accountID:(NSString*)accountID
+                       role:(NSInteger)role
+                   callBack:(id<IStoreBaseInforCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"realName=%@&userName=%@&role=%d",realName, accountID, role];
+    [self doRequest:STORE_CLERK_ADD paramer:paramer httpMethod:POST constroller:callback];
+}
+
+
+-(void)loadProperty:(NSString*)storeID callBack:(id<IStoreBaseInforCallBack>)callback{
+    //NSString *paramer = [NSString stringWithFormat:@"storeid=%@",storeID];
+    [self doRequest:STORE_PROPERTY paramer:nil httpMethod:GET constroller:callback];
+}
+
+-(void)delClerkWithId:(long)clerkId callBack:(id<IStoreBaseInforCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"clerkId=%ld",clerkId];
+    [self doRequest:STORE_CLERK_DEL paramer:paramer httpMethod:POST constroller:callback];
+ 
+}
+
+-(void)updateClerk:(Clerk*)clerk callBack:(id<IStoreBaseInforCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"realName=%@&userName=%@&role=%d&id=%ld",
+                         clerk.realName, clerk.userName, clerk.identify, clerk.id];
+    [self doRequest:STORE_CLERK_UPDATE paramer:paramer httpMethod:POST constroller:callback];
+
+}
+
+
+-(void)doServiceResponse:(NSData *)data interface:(NSString *)interface sequence:(ConnectionSequence)sequence{
+    [super doServiceResponse:data interface:interface sequence:sequence];
+    if (IS_INTERFACE(STORE_LOAD)) {
+        [self doLoadStoreResponse:data sequence:sequence];
+    }else if (IS_INTERFACE(STORE_ALBUM)){
+        [self doLoadAlbumResponse:data sequence:sequence];
+    }else if (IS_INTERFACE(STORE_APPRIASE_LIST)){
+        [self doStoreAppriaseListResponse:data sequence:sequence];
+    }else if (IS_INTERFACE(STORE_RANK)){
+        [self doStoreRankResponse:data sequence:sequence];
+    }else if (IS_INTERFACE(STORE_PROPERTY)){
+        [self doLoadPropertyResponse:data sequence:sequence];
+    }else if (IS_INTERFACE(STORE_CLERK_LIST)){
+        [self doGetClerkListCallBack:data sequence:sequence];
+    }else if (IS_INTERFACE(STORE_CLERK_ADD)){
+        [self doAddClerkCallBack:data sequence:sequence];
+    }else if (IS_INTERFACE(STORE_CLERK_DEL)){
+        [self doDelClerkCallBack:data sequence:sequence];
+    }else if (IS_INTERFACE(STORE_CLERK_UPDATE)){
+        [self doUpdateClerkCallBack:data sequence:sequence];
+    }else if (IS_INTERFACE(STORE_ALBUM_UPDATE)){
+        [self doUpdateAlbumCallBack:data sequence:sequence];
+    }else if (IS_INTERFACE(UPLOAD_STORE_LOGO)){
+        [self doUploadLogoCallBack:data sequence:sequence];
+    }else if (IS_INTERFACE(UPLOAD_STORE_IMAGE)){
+        [self doUploadAlbumCallBack:data sequence:sequence];
+    }else if (IS_INTERFACE(STORE_UPDATE)){
+        [self doUpdateStoreCallBack:data sequence:sequence];
+
+    }
+    
+}
+
+-(void)doUpdateStoreCallBack:(NSData *)responseData sequence:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    id<IStoreBaseInforCallBack> callBack = [self findController:identify];
+    if (callBack&&[callBack respondsToSelector:@selector(updateStoreCallBack:msg:)]) {
+        [callBack updateStoreCallBack:retCode msg:msg];
+    }
+
+}
+
+-(void)doUploadLogoCallBack:(NSData *)responseData sequence:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    ImageInfo * image = [[ImageInfo alloc] init];
+    image.url = [jsonDic objectForKey:@"url"];
+    image.id =  [((NSString*)[jsonDic objectForKey:@"id"]) integerValue];
+    id<IStoreBaseInforCallBack> callBack = [self findController:identify];
+    if (callBack&&[callBack respondsToSelector:@selector(uploadLogoImageCallBack:msg:image:)]) {
+        [callBack uploadLogoImageCallBack:retCode msg:msg image:image];
+    }
+    [image release];
+}
+
+
+-(void)doUploadAlbumCallBack:(NSData *)responseData sequence:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    ImageInfo * image = [[ImageInfo alloc] init];
+    image.url = [jsonDic objectForKey:@"url"];
+    image.id =  [((NSString*)[jsonDic objectForKey:@"id"]) integerValue];
+    id<IStoreBaseInforCallBack> callBack = [self findController:identify];
+    if (callBack&&[callBack respondsToSelector:@selector(upLoadAlbumCallBack:msg:image:)]) {
+        [callBack upLoadAlbumCallBack:retCode msg:msg image:image];
+    }
+    [image release];
+}
+
+-(void)doUpdateAlbumCallBack:(NSData *)responseData sequence:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    id<IStoreBaseInforCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(updateAlumbCallBack:msg:)]) {
+        [callBack updateAlumbCallBack:retCode msg:msg];
+    }
+    
+}
+
+-(void)doUpdateClerkCallBack:(NSData *)responseData sequence:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    id<IStoreBaseInforCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(updateClerkCallBack:msg:)]) {
+        [callBack updateClerkCallBack:retCode msg:msg];
+    }
+}
+
+-(void)doDelClerkCallBack:(NSData *)responseData sequence:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    id<IStoreBaseInforCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(delClerkCallBack:msg:)]) {
+        [callBack delClerkCallBack:retCode msg:msg];
+    }
+}
+
+-(void)doAddClerkCallBack:(NSData *)responseData sequence:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    id<IStoreBaseInforCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(addClerkCallBack:msg:)]) {
+        [callBack addClerkCallBack:retCode msg:msg];
+    }
+}
+
+-(void)doGetClerkListCallBack:(NSData *)responseData sequence:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    id<IStoreBaseInforCallBack> callBack = [self findController:identify];
+    NSMutableArray *list = nil;
+    NSArray * data = [jsonDic objectForKey:@"data"];
+    if (data) {
+        list = [[NSMutableArray alloc] init];
+        for (NSDictionary *dataDic in data) {
+            Clerk * clerk = [[Clerk alloc] init];
+            clerk.userName = [dataDic objectForKey:@"userName"];
+            clerk.id = [dataDic objectForKey:@"id"] !=nil ? [[dataDic objectForKey:@"id"] longValue]:0;
+            clerk.realName = [dataDic objectForKey:@"realName"];
+            clerk.identify = [dataDic objectForKey:@"role"] != nil?[[dataDic objectForKey:@"role"] integerValue]:2;
+            [list addObject:clerk];
+        }
+    }
+    if (callBack && [callBack respondsToSelector:@selector(getClerkListCallBack:msg:clerklist:)]) {
+        [callBack getClerkListCallBack:retCode msg:msg clerklist:list];
+    }
+    [list release];
+}
+
+-(void)doLoadPropertyResponse:(NSData *)responseData sequence:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    id<IStoreBaseInforCallBack> callBack = [self findController:identify];
+    StoreProperty * property = nil;
+    NSDictionary * data = [jsonDic objectForKey:@"data"];
+    if (data) {
+        property = [[StoreProperty alloc] init];
+        property.maxVoucherSend =  [data objectForKey:@"maxVoucherSend"] != nil?[[data objectForKey:@"maxVoucherSend"] integerValue]:10000;
+        property.minVoucherSend = [data objectForKey:@"minVoucherSend"] != nil?[[data objectForKey:@"minVoucherSend"] integerValue]:1000;
+        property.voucherPrice = [data objectForKey:@"voucherPrice"] != nil?[[data objectForKey:@"voucherPrice"] integerValue]:5;
+    }
+    if (callBack && [callBack respondsToSelector:@selector(loadPropertyCallBack:msg:storeProperty:)]) {
+        [callBack loadPropertyCallBack:retCode msg:msg storeProperty:property];
+    }
+    [property release];
+}
+-(void)doLoadStoreResponse:(NSData *)responseData sequence:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    Store *store = [[Store alloc] init];
+    NSDictionary *dicData = [jsonDic objectForKey:@"data"];
+    store.id = [dicData  objectForKey:@"id"]!=nil?[[dicData  objectForKey:@"id"] longValue]:0;
+    store.name = [dicData  objectForKey:@"name"];
+    store.description = [dicData  objectForKey:@"description"];
+    store.address = [dicData  objectForKey:@"address"];
+    store.profession = [dicData  objectForKey:@"profession"];
+    store.keyword = [dicData  objectForKey:@"keyword"];
+    store.telphone1 = [dicData  objectForKey:@"telphone1"];
+    store.telphone2 = [dicData  objectForKey:@"telphone2"];
+    store.contact = [dicData  objectForKey:@"contact"];
+    store.summary = [dicData  objectForKey:@"summary"];
+    store.property = [dicData  objectForKey:@"property"];
+    store.createTime = [dicData  objectForKey:@"createTime"];
+    store.updateTime = [dicData  objectForKey:@"updateTime"];
+    store.avgPrice = [dicData  objectForKey:@"avgPrice"]!=nil?[[dicData  objectForKey:@"avgPrice"] floatValue]:0;
+    store.cupTag = [dicData  objectForKey:@"cupTag"]!=nil?[[dicData  objectForKey:@"cupTag"] boolValue]:NO;
+    store.disabled = [dicData  objectForKey:@"disabled"]!=nil?[[dicData  objectForKey:@"disabled"] boolValue]:NO;
+    store.expired = [dicData  objectForKey:@"expired"]!=nil?[[dicData  objectForKey:@"expired"] boolValue]:NO;
+    store.user = [dicData  objectForKey:@"user"]!=nil?[[dicData  objectForKey:@"user"] intValue]:0;
+    store.status = [dicData  objectForKey:@"status"]!=nil?[[dicData  objectForKey:@"status"] intValue]:0;
+    store.businessArea = [dicData  objectForKey:@"businessArea"]!=nil?[[dicData  objectForKey:@"businessArea"] longValue]:0;
+    store.longitude = [dicData  objectForKey:@"longitude"]!=nil?[[dicData  objectForKey:@"longitude"] floatValue]:0;
+    store.latitude = [dicData  objectForKey:@"latitude"]!=nil?[[dicData  objectForKey:@"latitude"] floatValue]:0;
+    store.businessHour = [dicData  objectForKey:@"businessHour"];
+    store.logo = [dicData  objectForKey:@"logo"];
+    store.favoriteId = [dicData  objectForKey:@"favoriteId"]!=nil?[[dicData  objectForKey:@"favoriteId"] longValue]:0;
+    store.serviceScore = [dicData  objectForKey:@"serviceScore"]!=nil?[[dicData  objectForKey:@"serviceScore"] floatValue]:0;
+    store.environmentScore = [dicData  objectForKey:@"environmentScore"]!=nil?[[dicData  objectForKey:@"environmentScore"] floatValue]:0;
+    store.priceScore = [dicData  objectForKey:@"priceScore"]!=nil?[[dicData  objectForKey:@"priceScore"] floatValue]:0;
+    store.sumScore = [dicData  objectForKey:@"sumScore"]!=nil?[[dicData  objectForKey:@"sumScore"] floatValue]:0;
+    store.creditpoint = [dicData  objectForKey:@"creditpoint"]!=nil?[[dicData  objectForKey:@"creditpoint"] longValue]:0;
+    store.gold = [dicData  objectForKey:@"gold"]!=nil?[[dicData  objectForKey:@"gold"] floatValue]:0;
+    store.wifiCount = [dicData  objectForKey:@"wifiCount"]!=nil?[[dicData  objectForKey:@"wifiCount"] longValue]:0;
+    store.onlineUsers = [dicData  objectForKey:@"onlineUsers"]!=nil?[[dicData  objectForKey:@"onlineUsers"] longValue]:0;
+    store.vipLevel = [dicData  objectForKey:@"vipLevel"]!=nil?[[dicData  objectForKey:@"vipLevel"] integerValue]:0;
+    store.parentPropertyLogo = [dicData objectForKey:@"parentPropertyLogo"];
+    id<IStoreBaseInforCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(loadStorecCallBack:msg:store:)]) {
+        //NSDictionary *data = [jsonDic objectForKey:@"data"];
+        [callBack loadStorecCallBack:retCode msg:msg store:store];
+    }
+    [store release];
+}
+-(void)doLoadAlbumResponse:(NSData *)responseData sequence:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    NSArray * data = [jsonDic objectForKey:@"data"];
+    NSMutableArray *albums = nil;
+    if (data) {
+        albums = [[NSMutableArray alloc] init];
+        for (NSDictionary *dic in data) {
+            Album *al =  [[Album alloc] init];
+            al.url = [dic objectForKey:@"url"];
+            al.id = [dic objectForKey:@"id"]!=nil?[[dic objectForKey:@"id"] longValue]:0;
+            [albums addObject:al];
+            [al release];
+        }
+    }
+    id<IStoreBaseInforCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(loadAlbumCallBack:msg:albums:)]) {
+        [callBack loadAlbumCallBack:retCode msg:msg albums:albums];
+    }
+    [albums release];
+}
+
+-(void)doStoreAppriaseListResponse:(NSData *)responseData sequence:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    NSDictionary * data = [jsonDic objectForKey:@"data"];
+    long total = [data objectForKey:@"total"] !=nil?[[data objectForKey:@"total"] longValue]:0;
+    NSArray *replyList = [data objectForKey:@"ReplyDetailList"];
+    NSMutableArray *list = [[NSMutableArray alloc] init];
+    if (replyList) {
+        for (NSDictionary *dic in replyList) {
+            StoreAppriase *ap = [[StoreAppriase alloc] init];
+            ap.id = [dic objectForKey:@"id"] != nil?[[dic objectForKey:@"id"] longValue]:0;
+            ap.title = [dic objectForKey:@"title"];
+            ap.description = [dic objectForKey:@"description"];
+            ap.likeCount = [dic objectForKey:@"likeCount"] != nil?[[dic objectForKey:@"likeCount"] longValue]:0;
+            ap.userIcon = [dic objectForKey:@"userIcon"];
+            ap.userName = [dic objectForKey:@"userName"];
+            ap.userid = [dic objectForKey:@"userid"] != nil? [[dic objectForKey:@"userid"] longValue]:0;
+            ap.service = [dic objectForKey:@"service"] != nil?[[dic objectForKey:@"service"] floatValue]:0;
+            ap.taste = [dic objectForKey:@"taste"] != nil?[[dic objectForKey:@"taste"] floatValue]:0;
+            ap.price = [dic objectForKey:@"price"] != nil? [[dic objectForKey:@"price"] floatValue]:0;
+            ap.isLike = [dic objectForKey:@"isLike"] != nil? [[dic objectForKey:@"isLike"] boolValue]:false;
+            ap.createTime = [dic objectForKey:@"createTime"];
+            [list addObject:ap];
+            [ap release];
+        }
+    }
+    id<IStoreAppraiseCallBack> callBack = [self findController:identify];
+    if (callBack&& [callBack respondsToSelector:@selector(getAppriaseListCallBack:msg:totalCount:list:)]) {
+        [callBack getAppriaseListCallBack:retCode msg:msg totalCount:total list:list];
+    }
+    [list release];
+}
+
+-(void)doStoreRankResponse:(NSData *)responseData sequence:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    NSDictionary *dic = [jsonDic objectForKey:@"data"];
+    Rank * rank = nil;
+    if (dic) {
+        rank = [[Rank alloc] init];
+        rank.id = [dic objectForKey:@"id"] != nil?[[dic objectForKey:@"id"] longValue]:0;
+        rank.experienceTotal = [dic objectForKey:@"experienceTotal"] != nil?[[dic objectForKey:@"experienceTotal"] floatValue]:0;
+        rank.experienceCount = [dic objectForKey:@"experienceCount"] != nil?[[dic objectForKey:@"experienceCount"] longValue]:0;
+        rank.consumptionTotal = [dic objectForKey:@"consumptionTotal"] != nil?[[dic objectForKey:@"consumptionTotal"] floatValue]:0;
+        rank.consumptionCount = [dic objectForKey:@"consumptionCount"] != nil?[[dic objectForKey:@"consumptionCount"] longValue]:0;
+        rank.requirementCount = [dic objectForKey:@"requirementCount"] != nil?[[dic objectForKey:@"requirementCount"] longValue]:0;
+        rank.requirementTotal = [dic objectForKey:@"requirementTotal"] != nil?[[dic objectForKey:@"requirementTotal"] floatValue]:0;
+        rank.score = [dic objectForKey:@"score"] != nil?[[dic objectForKey:@"score"] floatValue]:0.0f;
+        rank.keyID = [dic objectForKey:@"storeId"] != nil?[[dic objectForKey:@"storeId"] longValue]:0;
+        rank.updatedTime = [dic objectForKey:@"updatedTime"];
+        rank.createdTime = [dic objectForKey:@"createdTime"];
+
+    }
+    id<IStoreAppraiseCallBack> callBack = [self findController:identify];
+    if (callBack&& [callBack respondsToSelector:@selector(getStoreRankCallBack:msg:rank:)]) {
+        [callBack getStoreRankCallBack:retCode msg:msg rank:rank];
+    }
+    [rank release];
+}
+@end

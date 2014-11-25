@@ -1,0 +1,69 @@
+//
+//  HttpServiceMacro.h
+//  Bussiness
+//
+//  Created by liukai on 14-7-16.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#ifndef Bussiness_HttpServiceMacro_h
+#define Bussiness_HttpServiceMacro_h
+
+
+#define HTTP_SERVER_PORT  8088
+#define NOTIFACTION_SERVER_PORT 8089
+#define IMAGE_SERVER_PORT  8080
+
+#define USER_LOGIN @"/user/login" //会员登陆
+#define STORE_LOGIN @"/store/login"   //商家登陆接口
+#define COMMON_SMS @"/common/sms" //获取验证码接口
+#define UPDATE_PASSWORD @"/check/securitycode/validate" //提交验证码，修改密码接口
+
+
+#define MEMBER_LOAD @"/member/load" //会员资料加载
+#define MEMBER_UPDATE @"/member/update"//会员资料修改
+#define MEMBER_UPLOAD_LOGO @"/hive-images/member/thumb/upload.action" //上次会员头像
+
+#define STORE_LOAD @"/store/my" //加载商户详情接口
+#define STORE_UPDATE @"/store/update" //更新商户详情接口
+#define CREDITE_STORE_LIST @"/store/point/details" //加载积分详情接口
+#define GOLD_STORE_LIST @"/gold/store/list"  //加载金币详情接口
+#define BUSINESS_VERSION @"/system/business/version" //获取客户端最新版本信息
+#define STORE_FEED_BAKC @"/feedback/store/add"  //递交反馈信息
+
+#define SELECTOR_LIST @"/selector/list"   //获取用户标签接口
+#define VOUCHER_MAKE @"/store/voucher/make" //优惠券制作接口
+#define VOUCHER_SPCSEARCH    @"/voucher/spcsearch" //优惠券查询会员特权消费返利接口
+#define VOUCHER_SPCUPDATE    @"/voucher/spcupdate" //优惠券编辑会员特权和消费返利
+#define VOUCHER_SPCDEL    @"/voucher/spcdel"       //优惠券删除会员特权和消费返利
+#define VOUCHER_SPECIAL_MAKE @"/store/specialvoucher/make" //制作特价优惠券
+
+#define STORE_LIST @"/store/list" //查询当前用户的商户列表
+#define STORE_ALBUM @"/store/album" //查询商户相册
+#define STORE_ALBUM_UPDATE @"/store/album/update" //编辑商户相册
+#define STORE_APPRIASE_LIST @"/store/reply/list" //商家评论列表
+#define STORE_RANK @"/store/rank" //商家等级信息
+#define STORE_PROPERTY @"/common/store/property" //查询商户收到的订单
+#define STORE_ORDER_LIST @"/store/order/list" //查询商户收到的订单
+#define STORE_ORDER_HISTOREY @"/store/history/order"//查询历史订单
+#define STORE_ORDER_CONFIRM @"/store/order/confirm" //订单确认
+#define STORE_ORDER_DEL @"/store/order/del"  //订单删除
+#define STORE_CLERK_LIST @"/store/clerk/list" //店员信息查询
+#define STORE_CLERK_ADD @"/store/clerk/add" //添加店员
+#define STORE_CLERK_DEL @"/store/clerk/del" //删除店员
+#define STORE_CLERK_UPDATE @"/store/clerk/update" //删除店员
+
+
+//图片服务相关接口
+#define UPLOAD_STORE_LOGO @"/hive-images/store/thumb/upload.action" //更新商户头像接口
+#define UPLOAD_STORE_IMAGE @"/hive-images/store/image/upload.action" //更新商户头像接口
+#define UPLOAD_VOUCHER_LOGO @"/hive-images/voucher/thumb/upload.action" //更新优惠券LOGO接口
+#define UPLOAD_VOUCHER_IMAGE @"/hive-images/voucher/image/upload.action" //更新优惠券图片接口
+
+//商圈信息
+#define BUSINESS_LIST @"/business/list" //商圈查询
+#define BUSINESS_TYPE @"/store/type" //商户分类查询
+
+
+
+#endif

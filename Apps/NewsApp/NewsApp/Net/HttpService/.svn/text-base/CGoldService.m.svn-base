@@ -1,0 +1,47 @@
+//
+//  CGoldService.m
+//  Bussiness
+//
+//  Created by liukai on 14-7-24.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import "CGoldService.h"
+
+#import "GoldDetail.h"
+@implementation CGoldService
+
+SINGLETON_IMPLEMENT(CGoldService)
+-(void)list:(NSString*)storeID callBack:(id<IStoreGoldCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"id=%@",storeID];
+    [self doRequest:GOLD_STORE_LIST paramer:paramer httpMethod:GET constroller:callback];
+}
+
+-(void)doServiceResponse:(NSData*)responseData  interface:(NSString*)interface  sequence:(ConnectionSequence)sequence{
+    [super doServiceResponse:responseData interface:interface sequence:sequence];
+    if (IS_INTERFACE(GOLD_STORE_LIST)) {
+        [self doListResponse:responseData identify:sequence];
+    }
+    
+}
+-(void)doListResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    NSArray *list = [jsonDic objectForKey:@"data"];
+    NSMutableArray *goldArray = [[NSMutableArray alloc] init];
+    for(NSDictionary *dicGold in list){
+        GoldDetail *detail = [[GoldDetail alloc] init];
+        detail.amount = [dicGold objectForKey:@"amount"]!=nil? [[dicGold objectForKey:@"amount"] floatValue]:0;
+        detail.name = [dicGold objectForKey:@"descrtiption"];
+        detail.createdTime = [dicGold objectForKey:@"createdTime"];
+        detail.type = [dicGold objectForKey:@"type"]!=nil? getTransType([dicGold objectForKey:@"type"]):TransTypeINTO;
+        detail.channel = [dicGold objectForKey:@"channel"]!=nil? getTransChanel([NSString stringWithFormat:@"%d",[[dicGold objectForKey:@"channel"] integerValue]]):TransChanelUnkown;
+        [goldArray addObject:detail];
+        [detail release];
+    }
+    id<IStoreGoldCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(listCallBack:msg:goldList:)]) {
+        [callBack listCallBack:retCode msg:msg goldList:goldArray];
+    }
+    [goldArray release];
+}
+@end

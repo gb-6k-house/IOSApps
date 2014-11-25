@@ -1,0 +1,15 @@
+//
+//  CBusinessService.h
+//  yhcServerCoreLib
+//
+//  Created by liukai on 14-9-17.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import "ServerAPI.h"
+#import "CHttpServiceBase.h"
+#import "BusinessInfo.h"
+@interface CBusinessService : CHttpServiceBase<IBusinessApi>
+SINGLETON_DEFINE(CBusinessService)
+
+@end

@@ -1,0 +1,15 @@
+//
+//  IControllerResponseDelagate.h
+//  Bussiness
+//
+//  Created by liukai on 14-7-19.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+/**
+ * 页面响应HTTP请求，必须实现该接口
+ */
+@protocol IControllerResponseDelagate <NSObject>
+
+@end
