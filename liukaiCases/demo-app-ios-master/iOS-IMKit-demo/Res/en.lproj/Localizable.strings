@@ -1,0 +1,12 @@
+/* 
+  LocalizableStr.strings
+  iOS-IMKit-Demo
+
+  Created by Heq.Shinoda on 14-5-4.
+  Copyright (c) 2014年 iOS-IMKit-Demo. All rights reserved.
+*/
+
+//------------------------MainPage Title---------------------------//
+"loginPageTitle"="选择登录用户";
+"messageTitle"="消息";
+"ChatSessionTitle"="会话";

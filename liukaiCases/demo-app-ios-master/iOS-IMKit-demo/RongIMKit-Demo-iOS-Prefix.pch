@@ -1,0 +1,31 @@
+//
+// Prefix header for all source files of the 'iOS-IMKit-demo' target in the 'iOS-IMKit-demo' project
+//
+
+#import <Availability.h>
+
+#ifndef __IPHONE_5_0
+#warning "This project uses features only available in iOS SDK 5.0 and later."
+#endif
+
+#ifdef __OBJC__
+#import <UIKit/UIKit.h>
+#import <Foundation/Foundation.h>
+#endif
+
+#ifdef __IPHONE_8_0
+// suppress these errors until we are ready to handle them
+#pragma message "Ignoring designated initializer warnings"
+#pragma clang diagnostic ignored "-Wobjc-designated-initializers"
+#else
+// temporarily define an empty NS_DESIGNATED_INITIALIZER so we can use now,
+// will be ready for iOS8 SDK
+#define NS_DESIGNATED_INITIALIZER
+#endif
+
+
+#ifdef DEBUG
+#define DebugLog( fmt, ... ) NSLog( @"[%@:(%d)] %@", [[NSString stringWithUTF8String:__FILE__] lastPathComponent], __LINE__, [NSString stringWithFormat:(fmt), ##__VA_ARGS__] )
+#else
+#define DebugLog( fmt, ... )
+#endif

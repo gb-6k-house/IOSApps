@@ -1,0 +1,124 @@
+//
+//  COrderService.m
+//  Bussiness
+//
+//  Created by liukai on 14-8-4.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import "COrderService.h"
+
+@implementation COrderService
+
+SINGLETON_IMPLEMENT(COrderService)
+//获取商家收到的订单信息 支持分页查询
+-(void)orderList:(NSString*)storeID lastId:(long)lastID  callBack:(id<IOrderCallBack>)callback{
+    
+    NSString *paramer = [NSString stringWithFormat:@"lastid=%ld",lastID];
+    [self doRequest:STORE_ORDER_LIST paramer:paramer httpMethod:POST constroller:callback];
+}
+-(void)orderHistoryList:(NSString*)storeID lastId:(long)lastID  userIdentify:(UserIdentify)userIdentify callBack:(id<IOrderCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"lastIndexNo=%ld&role=%d",lastID, userIdentify];
+    [self doRequest:STORE_ORDER_HISTOREY paramer:paramer httpMethod:POST constroller:callback];
+}
+//订单确认其中voucherids表示优惠券ID，用逗号隔开
+-(void)orderConfirmForUser:(long)userID orderID:(long)orderID voucherids:(NSString*)voucherids rebateCount:(NSInteger)rebateCount callBack:(id<IOrderCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"memberid=%ld&orderid=%ld&voucherids=%@&rebateCount=%d",userID, orderID, voucherids,rebateCount];
+    [self doRequest:STORE_ORDER_CONFIRM paramer:paramer httpMethod:POST constroller:callback];
+}
+//删除订单
+-(void)orderRemove:(long)orderId callBack:(id<IOrderCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"orderId=%ld",orderId];
+    [self doRequest:STORE_ORDER_DEL paramer:paramer httpMethod:POST constroller:callback];
+}
+
+
+-(void)doServiceResponse:(NSData *)responseData interface:(NSString *)interface sequence:(ConnectionSequence)sequence{
+    [super doServiceResponse:responseData interface:interface sequence:sequence];
+    if (IS_INTERFACE(STORE_ORDER_LIST)) {
+        [self doListResponse:responseData identify:sequence history:NO];
+    }else if (IS_INTERFACE(STORE_ORDER_HISTOREY)){
+        [self doListResponse:responseData identify:sequence history:YES];
+    }else if (IS_INTERFACE(STORE_ORDER_DEL)){
+        [self doRemoveResponse:responseData identify:sequence];
+    }else if (IS_INTERFACE(STORE_ORDER_CONFIRM)) {
+        [self doConfirmResponse:responseData identify:sequence];
+    }
+    
+}
+-(void)doListResponse:(NSData *)responseData identify:(ConnectionSequence)identify history:(BOOL) history{
+    FETCH_RECODE_MSG
+    NSDictionary * data = [jsonDic objectForKey:@"data"];
+    OrderList *orderlist = nil;
+    if (data) {
+        orderlist = [[OrderList alloc] init];
+        orderlist.allCount = [data objectForKey:@"allCount"] != nil?[[data objectForKey:@"allCount"] longValue]:0;
+        orderlist.monthCount = [data objectForKey:@"monthCount"] != nil?[[data objectForKey:@"monthCount"] longValue]:0;
+        orderlist.isExsitsRebates = [[data objectForKey:@"isExsitsRebates"] boolValue];
+        NSArray *detailList = [data objectForKey:@"orderlist"];
+        for ( NSDictionary *dic in detailList) {
+            OrderDetail *detail = [[OrderDetail alloc] init];
+            [orderlist.orders addObject:detail];
+            detail.id = [dic objectForKey:@"orderId"] != nil?[[dic objectForKey:@"orderId"] longValue]:0;
+            detail.userId = [dic objectForKey:@"userId"] != nil?[[dic objectForKey:@"userId"] longValue]:0;
+            detail.username = [dic objectForKey:@"userName"];
+            detail.storeId = [dic objectForKey:@"storeId"] != nil?[[dic objectForKey:@"storeId"] longValue]:0;
+            detail.storeName = [dic objectForKey:@"storeName"];
+            detail.createtime =[dic objectForKey:@"createtime"];
+            detail.closeTime = [dic objectForKey:@"closeTime"];
+            detail.returnpoint = [dic objectForKey:@"userId"] != nil?[[dic objectForKey:@"userId"] longValue]:0;
+            detail.usedpoint = [dic objectForKey:@"usedpoint"] != nil?[[dic objectForKey:@"usedpoint"] longValue]:0;
+            detail.totalcosted = [dic objectForKey:@"totalcosted"] != nil?[[dic objectForKey:@"totalcosted"] longValue]:0;
+            detail.realcosted = [dic objectForKey:@"realcosted"] != nil?[[dic objectForKey:@"realcosted"] longValue]:0;
+            detail.discount = [dic objectForKey:@"discount"] != nil?[[dic objectForKey:@"discount"] longValue]:0;
+            detail.rebatesCount = [dic objectForKey:@"rebatesCount"] != nil?[[dic objectForKey:@"rebatesCount"] longValue]:0;
+            detail.clerkName = [dic objectForKey:@"clerkName"];
+            detail.bInStore = [dic objectForKey:@"inStore"] != nil?[[dic objectForKey:@"inStore"] boolValue]:NO;
+
+            for (NSDictionary *dic2 in [dic objectForKey:@"usedVoucherList"]) {
+                VoucherDetail *vdetail =  [[VoucherDetail alloc] init];
+                [detail.voucherlist addObject:vdetail];
+                vdetail.type = [dic2 objectForKey:@"voucherType"] != nil?[[dic2 objectForKey:@"voucherType"] intValue]:1;
+                vdetail.tag = [dic2 objectForKey:@"voucherTag"] != nil?[[dic2 objectForKey:@"voucherTag"] intValue]:1;
+                vdetail.logo = [dic2 objectForKey:@"voucherLogo"];
+                vdetail.title = [dic2 objectForKey:@"voucherTile"];
+                vdetail.id = [dic2 objectForKey:@"voucherId"] != nil?[[dic2 objectForKey:@"voucherId"] longValue]:0;
+                vdetail.end = [dic2 objectForKey:@"voucherEnd"];
+                vdetail.Effect = [dic2 objectForKey:@"voucherEffect"];
+                vdetail.desc = [dic2 objectForKey:@"voucherDesc"];
+                vdetail.myVoucherId = [dic2 objectForKey:@"myVoucherId"] != nil?[[dic2 objectForKey:@"myVoucherId"] intValue]:0;
+                [vdetail release];
+            }
+            [detail release];
+        }
+    }
+    id<IOrderCallBack> callBack = [self findController:identify];
+    if (history) {
+        if (callBack&&[callBack respondsToSelector:@selector(orderHistoryListCallBack:msg:orders:)]) {
+            [callBack orderHistoryListCallBack:retCode msg:msg orders:orderlist];
+        }
+
+    }else{
+        if (callBack&&[callBack respondsToSelector:@selector(orderlistCallBack:msg:orders:)]) {
+            [callBack orderlistCallBack:retCode msg:msg orders:orderlist];
+        }
+    }
+    [OrderList release];
+}
+
+-(void)doConfirmResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    id<IOrderCallBack> callBack = [self findController:identify];
+    if (callBack&&[callBack respondsToSelector:@selector(orderConfirmCallBack:msg:)]) {
+        [callBack orderConfirmCallBack:retCode msg:msg ];
+    }
+    
+}
+-(void)doRemoveResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    id<IOrderCallBack> callBack = [self findController:identify];
+    if (callBack&&[callBack respondsToSelector:@selector(orderRemoveCallBack:msg:)]) {
+        [callBack orderRemoveCallBack:retCode msg:msg ];
+    }
+}
+@end

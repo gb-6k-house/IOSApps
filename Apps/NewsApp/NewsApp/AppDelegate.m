@@ -11,6 +11,9 @@
 #import "LeftViewController.h"
 #import "RightViewController.h"
 #import <MSDynamicsDrawerViewController.h>
+#import "LogInfo.h"
+#import <DDTTYLogger.h>
+#import <DDFileLogger.h>
 @interface AppDelegate ()
 
 @end
@@ -23,6 +26,10 @@
     return YES;
 }
 - (BOOL)application:(UIApplication *)application willFinishLaunchingWithOptions:(NSDictionary *)launchOptions{
+    
+    [DDLog addLogger:[DDTTYLogger sharedInstance]];
+    [DDLog addLogger:[[DDFileLogger alloc] init]];
+
     MSDynamicsDrawerViewController *drawerCtr = [[MSDynamicsDrawerViewController alloc] init];
     HomeViewController *home = [[HomeViewController alloc] init];
     home.drawerCtrl = drawerCtr;

@@ -8,11 +8,10 @@
 
 #import "HomeViewController.h"
 #import "CQQMasterService.h"
-@interface HomeViewController ()<CQQMasterServiceDelegate>
+@interface HomeViewController ()
 @property (strong, nonatomic) IBOutlet UIButton *leftBarBtn;
 @property (weak, nonatomic) IBOutlet UIButton *rightBarBtn;
 @property (weak, nonatomic) IBOutlet UIWebView *mainWebView;
-@property (strong , nonatomic)CQQMasterService *qqMasterService;
 @end
 
 @implementation HomeViewController
@@ -36,7 +35,6 @@
     [self.navigationItem setRightBarButtonItem:rightItem];
     
     [self.mainWebView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:@"http://dajia.qq.com/"] ]];
-    self.qqMasterService = [[CQQMasterService alloc] init];
  
 }
 
@@ -55,7 +53,6 @@
 }
 */
 - (void)gotoLeftView:(id)sender {
-       [self.qqMasterService getHomeInfoFor:self];
     [self.drawerCtrl setPaneState:MSDynamicsDrawerPaneStateOpen inDirection:MSDynamicsDrawerDirectionLeft animated:YES allowUserInterruption:YES completion:nil];
 }
 - (IBAction)gotoRightView:(id)sender {

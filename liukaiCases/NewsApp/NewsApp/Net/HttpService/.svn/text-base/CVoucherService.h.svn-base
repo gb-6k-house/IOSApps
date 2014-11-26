@@ -1,0 +1,15 @@
+//
+//  CVoucherService.h
+//  Bussiness
+//
+//  Created by liukai on 14-7-29.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import "CHttpServiceBase.h"
+#import "ServerAPI.h"
+
+@interface CVoucherService : CHttpServiceBase<IVoucherApi>
+
+SINGLETON_DEFINE(CVoucherService)
+@end

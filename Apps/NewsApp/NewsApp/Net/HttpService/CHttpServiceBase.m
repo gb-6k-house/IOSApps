@@ -60,7 +60,9 @@ TokenStatus g_tokenStatu = TokenStatusNormal;
 
     NSData * data = nil;
     if (GET == method){
-        url = [NSString stringWithFormat:@"%@?%@",url,paramer];
+        if (paramer) {
+            url = [NSString stringWithFormat:@"%@?%@",url,paramer];
+        }
     }else{
         if (paramer
             && ![@"" isEqualToString:paramer]) {
@@ -102,22 +104,13 @@ const int  MB = 1024*1024;
 
 -(void)httpResponse:(NSData *) responseData connection:(id<IHttpConnection>)conn{
     NSDictionary *dic = [conn getConfig];
-    FETCH_RECODE_MSG
-    /*
-     *TOKEN失效，刷新TOKEN,必须包含条件self.status == CHttpServiceBaseStatusRefreshingToken,
-     *防止刷新TOKEN之前的其他请求返回，TOKEN失效，而导致循环刷新TOKEN
-     */
-    if (INVALID_TOKEN == retCode && !self.status == CHttpServiceBaseStatusRefreshingToken) {
-        DDLogInfo(@"%s捕获接口：%@，请求异常 %@", object_getClassName(self), [dic objectForKey:INTERFACE], msg);
-    }
-    //
    [self doServiceResponse:responseData interface:[dic objectForKey:INTERFACE] sequence:[[dic objectForKey:CONNECTION_ID] unsignedLongValue]];
 
     
 }
 
 -(void)doServiceResponse:(NSData*)responseData  interface:(NSString*)interface  sequence:(ConnectionSequence)sequence{
-    DDLogInfo(@"%@ 服务返回数据：%@", interface, [self getResponse:responseData]);
+    DDLogInfo(@"%@ 服务返回数据：%@", interface, responseData);
     
 }
 -(void)addController:(id)controller sequence:(ConnectionSequence) sequence{

@@ -7,8 +7,10 @@
 //
 
 #import "RightViewController.h"
+#import "CQQMasterService.h"
 
-@interface RightViewController ()
+@interface RightViewController ()<CQQMasterServiceDelegate>
+@property (strong , nonatomic)CQQMasterService *qqMasterService;
 
 @end
 
@@ -33,5 +35,10 @@
     // Pass the selected object to the new view controller.
 }
 */
+- (IBAction)loadHomeData:(id)sender {
+    self.qqMasterService = [[CQQMasterService alloc] init];
+    [self.qqMasterService getHomeInfoFor:self];
+
+}
 
 @end

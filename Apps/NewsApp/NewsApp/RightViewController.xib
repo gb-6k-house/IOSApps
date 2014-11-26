@@ -15,10 +15,13 @@
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <subviews>
                 <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="e48-Up-Q4U">
-                    <rect key="frame" x="254" y="98" width="60" height="30"/>
-                    <state key="normal" title="右边视图">
+                    <rect key="frame" x="270" y="101" width="60" height="30"/>
+                    <state key="normal" title="加载首页">
                         <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                     </state>
+                    <connections>
+                        <action selector="loadHomeData:" destination="-1" eventType="touchUpInside" id="xd0-PF-Jjt"/>
+                    </connections>
                 </button>
             </subviews>
             <color key="backgroundColor" white="0.33333333333333331" alpha="1" colorSpace="calibratedWhite"/>

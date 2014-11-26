@@ -1,0 +1,203 @@
+//
+//  CHttpServiceBase.m
+//  Bussiness
+//
+//  Created by liukai on 14-7-16.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import "CHttpServiceBase.h"
+#import "LogInfo.h"
+
+#define INVALID_TOKEN 620 //TOKEN失效
+//当前连接状态
+typedef NS_ENUM(NSInteger, CHttpServiceBaseStatus){
+    CHttpServiceBaseStatusNormal = 0, //正常状态
+    CHttpServiceBaseStatusRefreshingToken = 1 //等待刷新TOKEN
+};
+//Token状态
+typedef NS_ENUM(NSInteger, TokenStatus){
+    TokenStatusNormal = 0, //正常状态
+    TokenStatusTokenInValid = 1, //token失效状态
+    TokenStatusRefreshing = 2 //正在刷新TOKEN
+};
+
+@interface CHttpServiceBase(){
+    NSMutableDictionary * _viewCtrls; //请求的页面
+    NSMutableArray *_waitingRequestConn; //等待刷新TOKE请求的http连接
+}
+@property(nonatomic, assign)CHttpServiceBaseStatus status;
+@end;
+@implementation CHttpServiceBase
+
+//暂时用全局变量保存TOKEN状态
+TokenStatus g_tokenStatu = TokenStatusNormal;
+
+//获取Token信息
++(NSString*)getToken{
+   return [[CHttpManager sharedInstance] getToken];
+}
+//设置Token信息
++(void)setToken:(NSString*)token{
+    [[CHttpManager sharedInstance] setToken:token];
+}
+-(void)dealloc{
+    [_viewCtrls release];
+    [_waitingRequestConn release];
+    [[CHttpManager sharedInstance] cancelResponse:self];
+    [[CHttpServiceBase defaulNotificationCenter] removeObserver:self];
+    [super dealloc];
+}
+-(id)init{
+    self = [super init];
+    if (self) {
+        _viewCtrls = [[NSMutableDictionary alloc] init];
+        _waitingRequestConn = [[NSMutableArray alloc] init];
+        self.status = CHttpServiceBaseStatusNormal;
+        //监听登录通知
+        [[CHttpServiceBase defaulNotificationCenter] addObserver:self selector:@selector(doNotificationGotoLogin) name:NOTIFICATION_BASESERVICE_GOTO_LOGIN object:nil];
+
+        //监听TOKEN失效事件
+        [[CHttpServiceBase defaulNotificationCenter] addObserver:self selector:@selector(doNotificationInvalidToken) name:NOTIFICATION_BASESERVICE_INVALID_TOKEN object:nil];
+        //监听TOKEN刷新成功事件
+        [[CHttpServiceBase defaulNotificationCenter] addObserver:self selector:@selector(doNotificationFinishedToken) name:NOTIFICATION_BASESERVICE_FINISHED_REFRESH_TOKEN object:nil];
+    }
+    return self;
+}
+-(void)doRequest:(NSString*)interface paramer:(NSString*) paramer httpMethod:(HttpMethod)method constroller:(id)controller {
+    NSString *url = [NSString stringWithFormat:@"%@%@",[[[NSString alloc] initWithFormat:@"http://%@:%d", [CServiceBase serverIp], HTTP_SERVER_PORT] autorelease],interface];
+    NSData * data = nil;
+    if (GET == method){
+        url = [NSString stringWithFormat:@"%@?%@",url,paramer];
+    }else{
+        if (paramer
+            && ![@"" isEqualToString:paramer]) {
+            data = [paramer dataUsingEncoding:NSUTF8StringEncoding];
+        }
+        
+    }
+    DDLogInfo(@"当前请求url: %@，参数: %@", url, paramer);
+    CHttpConnection *connt = [[CHttpManager sharedInstance] doRequest:url body:data httpMethod:method response:self];
+    //保存服务接口
+    [connt settingConnection:@{INTERFACE: interface, CONNECTION_ID:[NSNumber numberWithUnsignedLong:connt.index]}];
+    [self addController:controller sequence:connt.index];
+    //开始请求, 如果正在刷新TOKEN ，则等待TOKEN刷新完成请求
+    if (g_tokenStatu == TokenStatusNormal) {
+        [[CHttpManager sharedInstance] startConnection:connt];
+    }else{
+        [_waitingRequestConn addObject:connt];
+    }
+
+}
+const int  MB = 1024*1024;
+-(void)upLoadImage:(NSString*)interface paramer:(NSDictionary*) paramer
+             image:(UIImage*)image
+       constroller:(id)controller{
+    NSString *url = [NSString stringWithFormat:@"%@%@",[[[NSString alloc] initWithFormat:@"http://%@:%d", [CServiceBase serverIp], IMAGE_SERVER_PORT] autorelease],interface];
+    DDLogInfo(@"%@", url);
+    NSData *imageData = UIImageJPEGRepresentation(image, 1.0);
+    //图片大5M则压缩
+    if ([imageData length] >= 5*MB) {
+        imageData = UIImageJPEGRepresentation(image, 0.8);
+    }
+    CHttpConnection *connt = [[CHttpManager sharedInstance] upLoadFile:@"IMAGE.JPG" url:url paramer:paramer fileData:imageData response:self];
+    [connt settingConnection:@{INTERFACE: interface, CONNECTION_ID:[NSNumber numberWithUnsignedLong:connt.index]}]; //保存服务接口
+    [self addController:controller sequence:connt.index];
+    //开始请求
+    //开始请求, 如果正在刷新TOKEN ，则等待TOKEN刷新完成请求
+    if (g_tokenStatu == TokenStatusNormal) {
+        [[CHttpManager sharedInstance] startConnection:connt];
+    }else{
+        [_waitingRequestConn addObject:connt];
+    }
+}
+
+
+-(NSString*)getResponse:(NSData*)responseData{
+    return [[[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding] autorelease];
+}
+
+-(void)httpResponse:(NSData *) responseData connection:(id<IHttpConnection>)conn{
+    NSDictionary *dic = [conn getConfig];
+    FETCH_RECODE_MSG
+    /*
+     *TOKEN失效，刷新TOKEN,必须包含条件self.status == CHttpServiceBaseStatusRefreshingToken,
+     *防止刷新TOKEN之前的其他请求返回，TOKEN失效，而导致循环刷新TOKEN
+     */
+    if (INVALID_TOKEN == retCode && !self.status == CHttpServiceBaseStatusRefreshingToken) {
+        DDLogInfo(@"%s捕获%@", object_getClassName(self), msg);
+        //Token失效之后发送通知给其他请求，其他请求需要等待TOKEN刷新
+        [_waitingRequestConn addObject:conn]; //保存当前请求，等刷新TOKEN成功之后，再次请求
+        [[CHttpServiceBase defaulNotificationCenter] postNotificationName:NOTIFICATION_BASESERVICE_INVALID_TOKEN object:nil];
+    }else{
+        //刷新TOKEN之前的请求返回，则直接处理掉
+       [self doServiceResponse:responseData interface:[dic objectForKey:INTERFACE] sequence:[[dic objectForKey:CONNECTION_ID] unsignedLongValue]];
+    }
+    
+}
+
+-(void)doServiceResponse:(NSData*)responseData  interface:(NSString*)interface  sequence:(ConnectionSequence)sequence{
+    DDLogInfo(@"%@ 服务返回JSON：%@", interface, [self getResponse:responseData]);
+    
+}
+-(void)addController:(id)controller sequence:(ConnectionSequence) sequence{
+    @synchronized(self){
+        if (!controller) {
+            return;
+        }
+        for (id ctrl in _viewCtrls) {
+            if (controller == ctrl) {
+                return;
+            }
+        }
+        [_viewCtrls setObject:controller forKey:[NSNumber numberWithUnsignedLong:sequence]];
+    }
+}
+
+-(void)removeController:(id)controller{
+    @synchronized(self){
+        for (id key in _viewCtrls.allValues) {
+            if ([_viewCtrls objectForKey:key] == controller){
+                //界面删除时，删除由于TOKEN刷新，阻塞的HTTP请求
+                for (CHttpConnection *conn in _waitingRequestConn) {
+                    if (conn.index == [key longValue]) {
+                        [_waitingRequestConn removeObject:conn];
+                    }
+                }
+                [_viewCtrls removeObjectForKey:key];
+                break;
+            }
+        }
+    }
+}
+-(id)findController:(ConnectionSequence)sequence{
+    @synchronized(self){
+        return [_viewCtrls objectForKey:[NSNumber numberWithUnsignedLong:sequence]];
+    }
+}
+#pragma mark 处理TOKEN刷新事件
+-(void)doNotificationInvalidToken{
+    //TOKEN失效，将TOKEN设置为刷新TOKEN, 需要刷新TOKEN
+    self.status = CHttpServiceBaseStatusRefreshingToken;
+    [self doAfterTokenInvilide];
+}
+-(void)doAfterTokenInvilide{
+    //todo something
+}
+-(void)doNotificationFinishedToken{
+    self.status = CHttpServiceBaseStatusNormal;
+    //等待的HTTP请求，重现获取请求。
+    for (CHttpConnection *conn in _waitingRequestConn) {
+        [[CHttpManager sharedInstance] startConnection:conn];
+    }
+    [_waitingRequestConn removeAllObjects];
+}
+-(void)doNotificationGotoLogin{
+    //取消当前所有请求
+    self.status = CHttpServiceBaseStatusRefreshingToken;
+    [[CHttpManager sharedInstance] cancelResponse:self];
+}
+
+
+
+@end

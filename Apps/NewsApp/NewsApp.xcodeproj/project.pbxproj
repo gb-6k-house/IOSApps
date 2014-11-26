@@ -19,6 +19,7 @@
 		4F3F595B1A1C9B54003A3FA1 /* CServiceBase.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F3F59591A1C9B54003A3FA1 /* CServiceBase.m */; };
 		4F3F595E1A1C9BB2003A3FA1 /* CServiceManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F3F595D1A1C9BB2003A3FA1 /* CServiceManager.m */; };
 		4F3F59611A1CA14B003A3FA1 /* CQQMasterService.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F3F59601A1CA14B003A3FA1 /* CQQMasterService.m */; };
+		4F575C801A2603F100C8D377 /* NSData+XML.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F575C7F1A2603F100C8D377 /* NSData+XML.m */; };
 		4F59AB541A1C33A5006C6464 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F59AB531A1C33A5006C6464 /* main.m */; };
 		4F59AB571A1C33A5006C6464 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F59AB561A1C33A5006C6464 /* AppDelegate.m */; };
 		4F59AB5A1A1C33A5006C6464 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4F59AB591A1C33A5006C6464 /* ViewController.m */; };
@@ -93,6 +94,8 @@
 		4F3F595D1A1C9BB2003A3FA1 /* CServiceManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CServiceManager.m; sourceTree = "<group>"; };
 		4F3F595F1A1CA14B003A3FA1 /* CQQMasterService.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CQQMasterService.h; sourceTree = "<group>"; };
 		4F3F59601A1CA14B003A3FA1 /* CQQMasterService.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CQQMasterService.m; sourceTree = "<group>"; };
+		4F575C7E1A2603F100C8D377 /* NSData+XML.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+XML.h"; sourceTree = "<group>"; };
+		4F575C7F1A2603F100C8D377 /* NSData+XML.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSData+XML.m"; sourceTree = "<group>"; };
 		4F59AB4E1A1C33A5006C6464 /* NewsApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NewsApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4F59AB521A1C33A5006C6464 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4F59AB531A1C33A5006C6464 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -342,6 +345,8 @@
 				4F20851D1A1C9473002F1CF5 /* LogInfo.h */,
 				4F59AB871A1C4BFA006C6464 /* UICommonMacro.h */,
 				4F2085211A1C94FC002F1CF5 /* CoreMacro.h */,
+				4F575C7E1A2603F100C8D377 /* NSData+XML.h */,
+				4F575C7F1A2603F100C8D377 /* NSData+XML.m */,
 			);
 			name = Common;
 			sourceTree = "<group>";
@@ -523,6 +528,7 @@
 				4F3F595B1A1C9B54003A3FA1 /* CServiceBase.m in Sources */,
 				4F59AB571A1C33A5006C6464 /* AppDelegate.m in Sources */,
 				4F20852C1A1C95F3002F1CF5 /* NSString+XMl.m in Sources */,
+				4F575C801A2603F100C8D377 /* NSData+XML.m in Sources */,
 				4F59AB8C1A1C738A006C6464 /* LeftViewController.m in Sources */,
 				4F3F595E1A1C9BB2003A3FA1 /* CServiceManager.m in Sources */,
 				4F59AB831A1C4B25006C6464 /* HomeViewController.m in Sources */,

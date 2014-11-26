@@ -1,0 +1,87 @@
+//
+//  CBusinessService.m
+//  yhcServerCoreLib
+//
+//  Created by liukai on 14-9-17.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import "CBusinessService.h"
+
+@implementation CBusinessService
+SINGLETON_IMPLEMENT(CBusinessService)
+
+-(void)businessList:(id<IBusinessApiCallBack>)callback{
+    [self doRequest:BUSINESS_LIST paramer:nil httpMethod:GET constroller:callback];
+
+}
+-(void)businessTypeByParentID:(long)parentID callBack:(id<IBusinessApiCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"pid=%ld",parentID];
+    [self doRequest:BUSINESS_TYPE paramer:paramer httpMethod:GET constroller:callback];
+
+}
+-(void)doServiceResponse:(NSData *)responseData interface:(NSString *)interface sequence:(ConnectionSequence)sequence{
+    [super doServiceResponse:responseData interface:interface sequence:sequence];
+    if (IS_INTERFACE(BUSINESS_LIST)) {
+        [self doBusinessListResponse:responseData identify:sequence];
+    }else if (IS_INTERFACE(BUSINESS_TYPE)){
+        [self doBusinessTypeResponse:responseData identify:sequence];
+    }
+}
+-(void)doBusinessTypeResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    NSArray *dataDic = [jsonDic objectForKey:@"data"];
+    NSMutableArray *list = nil;
+    if (dataDic) {
+        list = [[NSMutableArray alloc] init];
+        for (NSDictionary *dic in dataDic) {
+            BusinessClass *busClass = [[BusinessClass alloc] init];
+            busClass.name = [dic objectForKey:@"name"];
+            busClass.id = [dic objectForKey:@"id"]?[[dic objectForKey:@"id"] longValue]:0;
+            [list addObject:busClass];
+            [busClass release];
+        }
+    }
+    id<IBusinessApiCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(businessTypeByParentIDCallBack:msg:classes:)]) {
+        //NSDictionary *data = [jsonDic objectForKey:@"data"];
+        [callBack businessTypeByParentIDCallBack:retCode msg:msg classes:list];
+    }
+    
+    [list release];
+
+}
+-(void)doBusinessListResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    NSDictionary *dataDic = [jsonDic objectForKey:@"data"];
+    NSMutableArray *list = nil;
+    if (dataDic) {
+        list = [[NSMutableArray alloc] init];
+        for (NSDictionary *dic in [dataDic objectForKey:@"list"]) {
+            BusinessInfo *business = [[BusinessInfo alloc] init];
+            business.name = [dic objectForKey:@"name"];
+            business.id = [dic objectForKey:@"id"]?[[dic objectForKey:@"id"] longValue]:0;
+            business.description = [dic objectForKey:@"descprition"];
+            business.keyWord = [dic objectForKey:@"keyword"];
+            business.summary = [dic objectForKey:@"summary"];
+            business.adress = [[Adress alloc] init];
+            [business.adress release];
+            business.adress.province = [[dic objectForKey:@"address"] objectForKey:@"province"];
+            business.adress.city = [[dic objectForKey:@"address"] objectForKey:@"city"];
+            business.adress.area = [[dic objectForKey:@"address"] objectForKey:@"area"];
+            business.adress.street = [[dic objectForKey:@"address"] objectForKey:@"street"];
+            business.adress.adress = [[dic objectForKey:@"address"] objectForKey:@"adress"];
+            [list addObject:business];
+            [business release];
+        }
+    }
+    id<IBusinessApiCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(businessListCallBack:msg:businesses:)]) {
+        //NSDictionary *data = [jsonDic objectForKey:@"data"];
+        [callBack businessListCallBack:retCode msg:msg businesses:list];
+    }
+
+    [list release];
+}
+
+@end

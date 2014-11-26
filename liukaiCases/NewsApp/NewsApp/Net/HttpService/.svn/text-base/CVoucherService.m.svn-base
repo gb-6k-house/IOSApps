@@ -1,0 +1,274 @@
+//
+//  CVoucherService.m
+//  Bussiness
+//
+//  Created by liukai on 14-7-29.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import "CVoucherService.h"
+
+@implementation CVoucherService
+//制作优惠券时，获取用户标签
+
+SINGLETON_IMPLEMENT(CVoucherService)
+
+-(void) getSelector:(id<IVoucherCallBack>)callback{
+    [self doRequest:SELECTOR_LIST paramer:nil httpMethod:GET constroller:callback];
+}
+-(void)make:(Voucher*)voucher calBack:(id<IVoucherCallBack>)callback{
+    NSString *paramer =nil;
+    if(VoucherTypeGeneral == voucher.type){
+       paramer = [NSString stringWithFormat:@"count=%d&name=%@&logo=%ld&tag=%d&type=%d",voucher.count,
+         voucher.name, voucher.logo,
+         voucher.tag,
+         voucher.type];
+        if (voucher.effective  && ![voucher.effective isEqualToString:@""])
+        {
+            paramer = [paramer stringByAppendingString:[NSString stringWithFormat:@"&effective=%@", voucher.effective]];
+        }
+        if (voucher.endtime  && ![voucher.endtime isEqualToString:@""])
+        {
+            paramer = [paramer stringByAppendingString:[NSString stringWithFormat:@"&endtime=%@", voucher.endtime]];
+        }
+
+    }else{
+       paramer = [NSString stringWithFormat:@"voucherName=%@&logo=%ld&tag=%d&type=%d&voucherId=%ld", voucher.name, voucher.logo,
+         voucher.tag,
+         voucher.type,
+        voucher.voucherid];
+        if (voucher.effective  && ![voucher.effective isEqualToString:@""])
+        {
+            paramer = [paramer stringByAppendingString:[NSString stringWithFormat:@"&effectiveTime=%@", voucher.effective]];
+        }
+        if (voucher.endtime  && ![voucher.endtime isEqualToString:@""])
+        {
+            paramer = [paramer stringByAppendingString:[NSString stringWithFormat:@"&endTime=%@", voucher.endtime]];
+        }
+ 
+    }
+    if (voucher.tagIds && ![voucher.tagIds isEqualToString:@""])
+    {
+        paramer = [paramer stringByAppendingString:[NSString stringWithFormat:@"&tagIds=%@", voucher.tagIds]];
+    }
+    if (voucher.fullMoney  && ![voucher.fullMoney isEqualToString:@""])
+    {
+        paramer = [paramer stringByAppendingString:[NSString stringWithFormat:@"&fullMoney=%@", [voucher.fullMoney stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]]]];
+    }
+    if (voucher.moreDesc  && ![voucher.moreDesc isEqualToString:@""])
+    {
+        paramer = [paramer stringByAppendingString:[NSString stringWithFormat:@"&moreDesc=%@", voucher.moreDesc]];
+    }
+    if (voucher.description  && ![voucher.description isEqualToString:@""])
+    {
+        paramer = [paramer stringByAppendingString:[NSString stringWithFormat:@"&decription=%@", voucher.description]];
+    }
+    if (voucher.album  && ![voucher.album isEqualToString:@""])
+    {
+        paramer = [paramer stringByAppendingString:[NSString stringWithFormat:@"&album=%@", voucher.album]];
+    }
+
+    if (voucher.effectiveDays  && ![voucher.album isEqualToString:@""])
+    {
+        paramer = [paramer stringByAppendingString:[NSString stringWithFormat:@"&effectiveDays=%@", voucher.effectiveDays]];
+    }
+    if(VoucherTypeGeneral == voucher.type){
+        [self doRequest:VOUCHER_MAKE paramer:paramer httpMethod:POST constroller:callback];
+    }else{
+        [self doRequest:VOUCHER_SPCUPDATE paramer:paramer httpMethod:POST constroller:callback];
+    }
+
+}
+
+- (void)getVoucherWitType:(NSString *)type calBack:(id<IVoucherCallBack>)callback
+{
+    NSString *paramer = [NSString stringWithFormat:@"voucherType=%@",type];
+    [self doRequest:VOUCHER_SPCSEARCH paramer:paramer httpMethod:POST constroller:callback];
+}
+
+
+- (void)deleteVoucher:(long)voucherId calBack:(id<IVoucherCallBack>)callback;
+{
+    NSString *paramer = [NSString stringWithFormat:@"voucherId=%ld",voucherId];
+    [self doRequest:VOUCHER_SPCDEL paramer:paramer httpMethod:POST constroller:callback];
+}
+
+- (void)makeSpecialVoucher:(Voucher*)voucher calBack:(id<IVoucherCallBack>)callback
+{
+    NSString *paramer = [NSString stringWithFormat:@"voucherName=%@&effectiveDays=%@&logo=%ld&album=%@&description=%@&moreDesc=%@&price=%@&disountPrice=%@",voucher.name,voucher.effectiveDays,voucher.logo,voucher.album,voucher.description,voucher.moreDesc,voucher.price,voucher.disountPrice];
+    [self doRequest:VOUCHER_SPECIAL_MAKE paramer:paramer httpMethod:POST constroller:callback];
+}
+
+//优惠券LOGO上传，@imageData 图片数据
+-(void)upLoadVoucherLogo:(long)userID imageData:(UIImage*)image callBack:(id<IVoucherCallBack>)callback{
+    //NSString *paramer = [NSString stringWithFormat:@"userid=%ld",userID];
+    NSDictionary *paramer = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithLong:userID], @"userid",
+                             @"0", @"voucherid",
+                             nil];
+    [self upLoadImage:UPLOAD_VOUCHER_LOGO paramer:paramer image:image constroller:callback];
+}
+//优惠券图片上传，支持多张上传 @imageData 为图片数据
+-(void)upLoadVoucherAlbum:(long)userID imageDatas:(NSArray*)imageDatas callBack:(id<IVoucherCallBack>)callback{
+    for (UIImage *image in imageDatas) {
+        NSDictionary *paramer = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithLong:userID], @"userid",
+                                 @"0", @"voucherid",
+                                 nil];
+        [self upLoadImage:UPLOAD_VOUCHER_IMAGE paramer:paramer image:image constroller:callback];
+    }
+}
+
+
+#pragma mark - 请求代理回调
+
+-(void)doServiceResponse:(NSData*)responseData  interface:(NSString*)interface  sequence:(ConnectionSequence)sequence{
+    [super doServiceResponse:responseData interface:interface sequence:sequence];
+    if (IS_INTERFACE(SELECTOR_LIST))
+    {
+        [self doSelectList:responseData identify:sequence];
+    }
+    else if (IS_INTERFACE(VOUCHER_MAKE) || IS_INTERFACE(VOUCHER_SPCUPDATE))
+    {
+        [self doMakeResponse:responseData identify:sequence];
+    }
+    else if (IS_INTERFACE(VOUCHER_SPCSEARCH))
+    {
+        [self doGetVoucherResponse:responseData identify:sequence];
+    }
+    else if (IS_INTERFACE(VOUCHER_SPCDEL))
+    {
+        [self doDeleteVoucherResponse:responseData identify:sequence];
+    }
+    else if (IS_INTERFACE(VOUCHER_SPECIAL_MAKE))
+    {
+        [self doMakeSpecialVoucherResponse:responseData identify:sequence];
+    }else if (IS_INTERFACE(UPLOAD_VOUCHER_IMAGE)) {
+        [self doUpLoadVoucherImageResponse:responseData identify:sequence];
+    }else if (IS_INTERFACE(UPLOAD_VOUCHER_LOGO)){
+        [self doUpLoadVoucherLogoResponse:responseData identify:sequence];
+        
+    }
+}
+-(void)doSelectList:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    NSMutableArray *sels = nil;
+    NSDictionary *data = [jsonDic objectForKey:@"data"];
+    if (data){
+        sels = [[NSMutableArray alloc] init];
+        NSArray * list = [data objectForKey:@"result"];
+        for (NSDictionary *item in list) {
+            VoucherSelector * sel = [[VoucherSelector alloc] init];
+            sel.name = [item objectForKey:@"tagName"];
+            sel.tagid = [item objectForKey:@"tagId"]!=nil?[item objectForKey:@"tagId"]:@"";
+            [sels addObject:sel];
+            [sel release];
+        }
+    }
+    id<IVoucherCallBack> callBack = [self findController:identify];
+    if (callBack && [callBack respondsToSelector:@selector(getSelectorCallBack:msg:selectorList:)]) {
+        [callBack getSelectorCallBack:retCode msg:msg selectorList:sels];
+    }
+    [sels release];
+}
+-(void)doMakeResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    long voucherId = [jsonDic objectForKey:@"data"]!=nil?[[jsonDic objectForKey:@"data"] longValue]:0;
+    id<IVoucherCallBack> callBack = [self findController:identify];
+    if (callBack&&[callBack respondsToSelector:@selector(makeCallBack:msg:voucherID:)]) {
+        [callBack makeCallBack:retCode msg:msg voucherID:voucherId];
+    }
+}
+-(void)doGetVoucherResponse:(NSData *)responseData identify:(ConnectionSequence)identify
+{
+    FETCH_RECODE_MSG
+    id<IVoucherCallBack> callBack = [self findController:identify];
+    
+    NSDictionary *dic = [jsonDic objectForKey:@"data"];
+    if ([dic count] == 0)
+    {
+        if (callBack&&[callBack respondsToSelector:@selector(getVoucherCallBack:msg:Voucher:)])
+        {
+            [callBack getVoucherCallBack:retCode msg:msg Voucher:nil];
+        }
+        return;
+    }
+    Voucher *voucher = [[[Voucher alloc]init]autorelease];
+    voucher.voucherid = [[dic objectForKey:@"voucherid"] longValue];
+    voucher.name = [dic objectForKey:@"name"];
+    
+    NSString *logoId = [NSString stringWithFormat:@"%@",[dic objectForKey:@"logo"]];
+    voucher.logo = [logoId integerValue];
+    voucher.logoUrl = [dic objectForKey:@"logoUrl"];
+    voucher.effective = [dic objectForKey:@"effectiveTime"];
+    voucher.endtime = [dic objectForKey:@"endTime"];
+    voucher.description = [dic objectForKey:@"decription"];
+    voucher.moreDesc = [dic objectForKey:@"moreDesc"]!=nil?[NSString stringWithFormat:@"%@",[dic objectForKey:@"moreDesc"]]:@"";
+    voucher.type = [[dic objectForKey:@"type"] integerValue];
+    voucher.tag = [[dic objectForKey:@"tag"] integerValue];
+    voucher.price = [NSString stringWithFormat:@"%@",[dic objectForKey:@"price"]];
+    voucher.disountPrice = [NSString stringWithFormat:@"%@",[dic objectForKey:@"dicountPrice"]];
+    voucher.fullMoney = [NSString stringWithFormat:@"%@",[dic objectForKey:@"fullMoney"]];
+    
+    NSString *effTime = [dic objectForKey:@"effectiveDays"]!=nil?[NSString stringWithFormat:@"%@",[dic objectForKey:@"effectiveDays"]]:@"";
+    voucher.effectiveDays = [NSString stringWithFormat:@"%@",effTime];    
+    NSMutableArray *tempAlubumArray = [[NSMutableArray alloc]init];
+    NSArray *array = [dic objectForKey:@"voucherAlbum"];
+    for (NSDictionary *albumDic in array)
+    {
+        ImageInfo *info = [[ImageInfo alloc]init];
+        info.id = [[albumDic objectForKey:@"id"] longValue];
+        info.url = [albumDic objectForKey:@"url"];
+        [tempAlubumArray addObject:info];
+        [info release];
+    }
+    voucher.albumArray = tempAlubumArray;
+    
+    if (callBack&&[callBack respondsToSelector:@selector(getVoucherCallBack:msg:Voucher:)])
+    {
+        [callBack getVoucherCallBack:retCode msg:msg Voucher:voucher];
+    }
+}
+
+-(void)doDeleteVoucherResponse:(NSData *)responseData identify:(ConnectionSequence)identify
+{
+    FETCH_RECODE_MSG
+    id<IVoucherCallBack> callBack = [self findController:identify];
+    if (callBack&&[callBack respondsToSelector:@selector(deleteVoucherCallBack:msg:)])
+    {
+        [callBack deleteVoucherCallBack:retCode msg:msg];
+    }
+}
+
+-(void)doMakeSpecialVoucherResponse:(NSData *)responseData identify:(ConnectionSequence)identify
+{
+    FETCH_RECODE_MSG
+    id<IVoucherCallBack> callBack = [self findController:identify];
+    if (callBack&&[callBack respondsToSelector:@selector(makeSpecialVoucherCallBack:msg:)])
+    {
+        [callBack makeSpecialVoucherCallBack:retCode msg:msg];
+    }
+}
+-(void)doUpLoadVoucherLogoResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    ImageInfo * image = [[ImageInfo alloc] init];
+    image.url = [jsonDic objectForKey:@"url"];
+    image.id =  [((NSString*)[jsonDic objectForKey:@"id"]) integerValue];
+    id<IVoucherCallBack> callBack = [self findController:identify];
+    if (callBack&&[callBack respondsToSelector:@selector(upLoadVoucherLogoCallBack:msg:image:)]) {
+        [callBack  upLoadVoucherLogoCallBack:retCode msg:msg image:image];
+    }
+    [image release];
+}
+-(void)doUpLoadVoucherImageResponse:(NSData *)responseData identify:(ConnectionSequence)identify{
+    FETCH_RECODE_MSG
+    ImageInfo * image = [[ImageInfo alloc] init];
+    image.url = [jsonDic objectForKey:@"url"];
+    image.id =  [((NSString*)[jsonDic objectForKey:@"id"]) integerValue];
+    id<IVoucherCallBack> callBack = [self findController:identify];
+    if (callBack&&[callBack respondsToSelector:@selector(upLoadVoucherAlbumCallBack:msg:image:)]) {
+        [callBack upLoadVoucherAlbumCallBack:retCode msg:msg image:image];
+    }
+    [image release];
+    
+}
+
+@end

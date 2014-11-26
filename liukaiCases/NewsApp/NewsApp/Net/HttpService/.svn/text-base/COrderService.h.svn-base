@@ -1,0 +1,15 @@
+//
+//  COrderService.h
+//  Bussiness
+//
+//  Created by liukai on 14-8-4.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import "CHttpServiceBase.h"
+#import "ServerAPI.h"
+#import "OrderList.h"
+
+@interface COrderService : CHttpServiceBase<IOrderApi>
+SINGLETON_DEFINE(COrderService)
+@end

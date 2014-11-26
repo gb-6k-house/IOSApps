@@ -66,6 +66,4 @@
  *@identify 请求http连接ID
  */
 -(void)doServiceResponse:(NSData*)responseData  interface:(NSString*)interface  sequence:(ConnectionSequence)sequence;
-//TOKEN失效之后的处理函数, 登陆模块可以启动重新刷新TOKEN机制
--(void)doAfterTokenInvilide;
 @end

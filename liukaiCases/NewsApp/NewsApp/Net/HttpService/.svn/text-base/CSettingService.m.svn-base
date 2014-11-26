@@ -1,0 +1,56 @@
+//
+//  CSettingService.m
+//  Bussiness
+//
+//  Created by liukai on 14-7-28.
+//  Copyright (c) 2014年 yhc. All rights reserved.
+//
+
+#import "CSettingService.h"
+
+@implementation CSettingService
+
+SINGLETON_IMPLEMENT(CSettingService)
+-(void)getVesion:(NSString*)curVersion callBack:(id<ISettingCallBack>)callback{
+    //os写死为2
+    NSString *paramer = [NSString stringWithFormat:@"os=2&vesion=%@",curVersion];
+    [self doRequest:BUSINESS_VERSION paramer:paramer httpMethod:POST constroller:callback];
+}
+
+-(void)feedBack:(FeedBack*)feedBack callBack:(id<ISettingCallBack>)callback{
+    NSString *paramer = [NSString stringWithFormat:@"os=2&vesion=%@&fbContent=%@&type=%d@title=%@",feedBack.version,feedBack.content, feedBack.type, feedBack.title];
+    [self doRequest:STORE_FEED_BAKC paramer:paramer httpMethod:POST constroller:callback];
+}
+
+
+-(void)doServiceResponse:(NSData*)responseData  interface:(NSString*)interface  sequence:(ConnectionSequence)sequence{
+    [super doServiceResponse:responseData interface:interface sequence:sequence];
+    FETCH_RECODE_MSG
+    if (IS_INTERFACE(BUSINESS_VERSION)) {
+        NSDictionary *data = [jsonDic objectForKey:@"data"];
+        Version *ver = nil;
+        if (data) {
+            ver = [[Version alloc] init];
+            ver.version = [data objectForKey:@"version"];
+            ver.url = [data objectForKey:@"url"];
+            ver.size = [data objectForKey:@"size"]!=nil?[[data objectForKey:@"url"] longValue]:0;
+            ver.description = [data objectForKey:@"description"];
+            ver.force =  [data objectForKey:@"force"] !=nil?[[data objectForKey:@"force"] boolValue]:NO;
+        }
+        id<ISettingCallBack> callBack = [self findController:sequence];
+        if (callBack && [callBack respondsToSelector:@selector(getVersionCallBack:msg:version:)]) {
+            //NSDictionary *data = [jsonDic objectForKey:@"data"];
+            [callBack getVersionCallBack:retCode msg:msg version:ver];
+        }
+        [ver release];
+    }else if(IS_INTERFACE(STORE_FEED_BAKC)){
+        //
+        id<ISettingCallBack> callBack = [self findController:sequence];
+        if (callBack && [callBack respondsToSelector:@selector(feedBackCallBack:msg:)]) {
+            //NSDictionary *data = [jsonDic objectForKey:@"data"];
+            [callBack feedBackCallBack:retCode msg:msg];
+        }
+    }
+    
+}
+@end
